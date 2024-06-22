@@ -109,6 +109,20 @@
             margin: 2px;
         }
 
+        .row_block_help {
+            font-size: 20px;
+            border: 3px solid lightblue;
+            width: 20px;
+            height: 20px;
+            border-radius: 12px;
+            align-content: center; /* Might be necessary */
+            background: white;
+            font-weight: bold;
+            color: black;
+            padding: 15px;
+            margin: 2px;
+        }
+
         .hint_icon {
             font-size: 20px;
             vertical-align: bottom;
@@ -873,9 +887,9 @@
     </ul>
     <h4>Examples</h4>
     <div class="row">
-        <div class="row_block" style="border-radius: 0; border: 1px solid black; color: white; background-color: green;">3</div>
-        <div class="row_block" style="border-radius: 5px; border-color: black; color: white; background-color: orange;">2</div>
-        <div class="row_block" style="border-radius: 0; border: 1px solid black;">7</div>
+        <div class="row_block_help" style="border-radius: 0; border: 1px solid black; color: white; background-color: green;">3</div>
+        <div class="row_block_help" style="border-radius: 5px; border-color: black; color: white; background-color: orange;">2</div>
+        <div class="row_block_help" style="border-radius: 0; border: 1px solid black;">7</div>
     </div>
     <ul>
         <li>The first block number (<b>3</b>) is always given (green).</li>
@@ -884,9 +898,9 @@
         <li><b>7</b> is not in any <i>remaining</i> blocks (white).</li>
     </ul>
     <div class="row">
-        <div class="row_block" style="border-radius: 0; border: 1px solid black; color: white; background-color: green;">3</div>
-        <div class="row_block" style="border-radius: 5px; border-color: black;">8</div>
-        <div class="row_block" style="border-radius: 0; border: 1px solid black; color: white; background-color: green;">2</div>
+        <div class="row_block_help" style="border-radius: 0; border: 1px solid black; color: white; background-color: green;">3</div>
+        <div class="row_block_help" style="border-radius: 5px; border-color: black;">8</div>
+        <div class="row_block_help" style="border-radius: 0; border: 1px solid black; color: white; background-color: green;">2</div>
     </div>
     <ul>
         <li><b>2</b> has now been guessed correctly (green).</li>
