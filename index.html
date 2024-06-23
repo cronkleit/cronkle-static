@@ -806,13 +806,14 @@
             element.style.display = "none";
         }
 
-        function _uiDialogShow() {
-            document.getElementById('dialog-help').showModal();
+        function _dialogShow(id) {
+            document.getElementById(id).showModal();
         }
 
-        function _uiDialogClose() {
-            document.getElementById('dialog-help').close();
+        function _dialogClose(id) {
+            document.getElementById(id).close();
         }
+
     </script>
     <style>
         .container {
@@ -830,7 +831,8 @@
 <header class="container" style="display: flex;">
     <h1>Cronkle</h1>
     <nav id="navbar">
-        <button onclick="_uiDialogShow();" type="button" style="font-size: 20px; background-color: dodgerblue;">&#9432;</button>
+        <button onclick="_dialogShow('dialog-stats');" type="button" style="font-size: 20px; background-color: dodgerblue;">S</button>
+        <button onclick="_dialogShow('dialog-help');" type="button" style="font-size: 20px; background-color: dodgerblue;">?</button>
     </nav>
 </header>
 
@@ -887,6 +889,7 @@
 </div>
 
 <dialog id="dialog-help">
+    <button style="float: right;" onclick="_dialogClose('dialog-help');">Close</button>
     <h3>How To Play</h3>
     Guess the numeric code to move onto the next level.
     <ul>
@@ -942,7 +945,17 @@
         <li>The red cross indicates that 1 more other block needs to align with hint.</li>
     </ul>
     <p>The game will not let you <b><i>Enter</i></b> a guess without all four hints aligned.</p>
-    <button style="float: right;" onclick="_uiDialogClose();">Close</button>
+</dialog>
+
+<dialog id="dialog-stats">
+    <button style="float: right;" onclick="_dialogClose('dialog-stats');">Close</button>
+    <h3>Statistics</h3>
+    <p>These are <i>never shared</i> and <i>only</i> stored locally on your device.</p>
+    <h4>Highest Achievement</h4>
+    <p>It's the best you have done, at least on this device.</p>
+    <div><span style="font-weight: bolder">Level : </span> <span>8</span></div>
+    <div><span style="font-weight: bolder">Score : </span> <span>32</span></div>
+    <p><i>Statistics are currently simulated!</i></p>
 </dialog>
 
 </body>
