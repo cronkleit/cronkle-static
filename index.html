@@ -968,16 +968,18 @@
     }
 
     function _refreshStats() {
-        let previousStats = { level: 0, score: 0 };
-        let json = localStorage.getItem('cronkle-stats');
-        if (json) { previousStats = JSON.parse(json); }
+        let previousStats = _parseStats();
         let element = document.getElementById('stats-level');
         element.innerText = previousStats.level;
         element = document.getElementById('stats-score');
         element.innerText = previousStats.score;
+        element = document.getElementById('stats-message');
         if (previousStats.level === 0) {
-            element = document.getElementById('stats-message');
             element.innerText = 'Time to solve at least one level, hmm!?';
+        } else if (previousStats.level === 10) {
+            element.innerText = 'Wow! Can you get a better score?';
+        } else {
+            element.innerText = 'Nice! Can you beat level 10?';
         }
     }
 
@@ -992,9 +994,7 @@
         // Update if improved
         if (currentStats.level) {
             let improved = false;
-            let previousStats = { level: 0, score: 0 };
-            let json = localStorage.getItem('cronkle-stats');
-            if (json) { previousStats = JSON.parse(json); }
+            let previousStats = _parseStats();
             if (currentStats.level === previousStats.level) {
                 if (currentStats.score > previousStats.score) {
                     improved = true;
@@ -1006,6 +1006,15 @@
                 localStorage.setItem('cronkle-stats', JSON.stringify(currentStats));
             }
         }
+    }
+
+    function _parseStats() {
+        let r = { level: 0, score: 0 };
+        let json = localStorage.getItem('cronkle-stats');
+        if (json) {
+            r = JSON.parse(json);
+        }
+        return r;
     }
 
 </script>
