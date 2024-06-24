@@ -766,6 +766,7 @@
             const outcome = game.guess(code);
             if (outcome.solved) {
                 if (game.level >= 10) {
+                    _saveStats();
                     let message = 'You won!';
                     _openModal(message);
                     game = new Game(1);
@@ -773,6 +774,7 @@
                     _nextFocus();
                     _initRound();
                 } else {
+                    _saveStats();
                     let message = 'You solved level ' + game.level + ' with ' + game.round.answer + '!';
                     _openModal(message);
                     game.next();
@@ -831,7 +833,7 @@
 <header class="container" style="display: flex;">
     <h1>Cronkle</h1>
     <nav id="navbar">
-        <button onclick="_dialogShow('dialog-stats');" type="button" style="font-size: 20px; background-color: dodgerblue;">S</button>
+        <button onclick="_dialogStats();" type="button" style="font-size: 20px; background-color: dodgerblue;">S</button>
         <button onclick="_dialogShow('dialog-help');" type="button" style="font-size: 20px; background-color: dodgerblue;">?</button>
     </nav>
 </header>
@@ -953,10 +955,59 @@
     <p>These are <i>never shared</i> and <i>only</i> stored locally on your device.</p>
     <h4>Highest Achievement</h4>
     <p>It's the best you have done, at least on this device.</p>
-    <div><span style="font-weight: bolder">Level : </span> <span>8</span></div>
-    <div><span style="font-weight: bolder">Score : </span> <span>32</span></div>
-    <p><i>Statistics are currently simulated!</i></p>
+    <div><span style="font-weight: bolder">Level : </span> <span id="stats-level">0</span></div>
+    <div><span style="font-weight: bolder">Score : </span> <span id="stats-score">0</span></div>
+    <p id="stats-message" style="font-style: italic;"></p>
 </dialog>
 
+<script>
+
+    function _dialogStats() {
+        _refreshStats();
+        _dialogShow('dialog-stats');
+    }
+
+    function _refreshStats() {
+        let previousStats = { level: 0, score: 0 };
+        let json = localStorage.getItem('cronkle-stats');
+        if (json) { previousStats = JSON.parse(json); }
+        let element = document.getElementById('stats-level');
+        element.innerText = previousStats.level;
+        element = document.getElementById('stats-score');
+        element.innerText = previousStats.score;
+        if (previousStats.level === 0) {
+            element = document.getElementById('stats-message');
+            element.innerText = 'Time to solve at least one level, hmm!?';
+        }
+    }
+
+    function _saveStats() {
+        // Current
+        let currentStats = {};
+        let outcome = game.round.outcomes ? game.round.outcomes[0] : null
+        if (outcome && outcome.solved) {
+            currentStats.level = game.level;
+            currentStats.score = game.score;
+        }
+        // Update if improved
+        if (currentStats.level) {
+            let improved = false;
+            let previousStats = { level: 0, score: 0 };
+            let json = localStorage.getItem('cronkle-stats');
+            if (json) { previousStats = JSON.parse(json); }
+            if (currentStats.level === previousStats.level) {
+                if (currentStats.score > previousStats.score) {
+                    improved = true;
+                }
+            } else if (currentStats.level > previousStats.level) {
+                improved = true;
+            }
+            if (improved) {
+                localStorage.setItem('cronkle-stats', JSON.stringify(currentStats));
+            }
+        }
+    }
+
+</script>
 </body>
 </html>
