@@ -560,6 +560,7 @@
                 containerHistory.prepend(divElement);
                 let gArray = outcome.guess.split("");
                 let hCode = outcome.ham;
+                let i = 0;
                 for (let j = 0; j < gArray.length; j++) {
                     let spanElement = document.createElement('span');
                     spanElement.innerText = gArray[j];
@@ -578,7 +579,13 @@
                         spanElement.style.background = "orange";
                         spanElement.style.color = "white";
                     }
+                    if ((i > 0) && ((i % 5) === 0)) {
+                        let separatorElement = document.createElement('span');
+                        separatorElement.innerText = '-';
+                        divElement.appendChild(separatorElement);
+                    }
                     divElement.appendChild(spanElement);
+                    i += 1;
                 }
                 // Crop oldest outcome
                 if (game.round.attempts > 5) {
@@ -980,7 +987,7 @@
         } else if (previousStats.level === 10) {
             element.innerText = 'Wow! Can you get a better score?';
         } else {
-            element.innerText = 'Nice! Can you beat level 10?';
+            element.innerText = 'Nice! Can you beat level '+previousStats.level+'?'
         }
     }
 
