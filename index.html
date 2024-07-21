@@ -6,6 +6,7 @@
     <title>Play</title>
     <style>
         .item1 { grid-area: level; }
+        .item8 { grid-area: time; }
         .item2 { grid-area: score; }
         .item3 { grid-area: guess; }
         .item4 { grid-area: hint; }
@@ -16,12 +17,12 @@
         .grid-container {
             display: grid;
             grid-template-areas:
-                'level level score score'
-                'message message message message'
-                'guess guess guess guess'
-                'hint hint hint hint'
-                'choose choose choose choose'
-                'history history history history';
+                'level level time time score score'
+                'message message message message message message'
+                'guess guess guess guess guess guess'
+                'hint hint hint hint hint hint'
+                'choose choose choose choose choose choose'
+                'history history history history history history';
             /*gap: 10px;*/
             background-color: #2196F3;
             padding: 10px;
@@ -186,6 +187,7 @@
                 this.outcomes = [];
                 this.attempts = 0;
                 this.progress = [];
+                this.time = 15 + ((level - 1) * 15);
             }
 
             guess(code) {
@@ -353,7 +355,32 @@
                 }
             }
         }
-        
+
+        var ticker;
+        var remaining;
+
+        function _timerStart() {
+            if (!ticker) {
+                remaining = game.round.time;
+                ticker = setInterval(_timerTick, 1000);
+            }
+        }
+
+        function _timerStop() {
+            clearInterval(ticker);
+            ticker = null;
+        }
+
+        function _timerTick() {
+            const element = document.getElementById('game-time');
+            remaining--;
+            if (remaining <= 0) {
+                _gameOver('Out of time... You lose!');
+            } else {
+                element.innerText = remaining;
+            }
+        }
+
         var game = new Game(1);
         var focus = 0;
         _nextFocus();
@@ -384,9 +411,15 @@
         }
 
         function _resetUi() {
+            _resetUiSectionTime();
             _resetUiSectionMessage();
             _resetUiSectionGuess();
             _resetUiSectionHistory();
+        }
+
+        function _resetUiSectionTime() {
+            const element = document.getElementById('game-time');
+            element.innerText = game.round.time;
         }
 
         function _resetUiSectionMessage() {
@@ -637,6 +670,7 @@
         }
 
         function _actionChoice(choice) {
+            _timerStart(); // Start after first choice in round
             // What is already selected... where did that go?
             let actionElement = document.getElementById('g-'+focus);
             if (actionElement) {
@@ -773,6 +807,7 @@
             // codeElement.value = code;
             const outcome = game.guess(code);
             if (outcome.solved) {
+                _timerStop();
                 if (game.level >= 10) {
                     _saveStats();
                     let message = 'You won!';
@@ -791,17 +826,21 @@
                     _initRound();
                 }
             } else if (game.round.attempts >= 5) {
-                let message = 'You lose!';
-                _openModal(message);
-                game = new Game(game.id+1);
-                focus = 0;
-                _nextFocus();
-                _initRound();
+                _gameOver('No more attempts... You lose!');
             } else {
                 focus = 0;
                 _nextFocus();
                 _refreshUi();
             }
+        }
+
+        function _gameOver(message) {
+            _timerStop();
+            _openModal(message);
+            game = new Game(game.id+1);
+            focus = 0;
+            _nextFocus();
+            _initRound();
         }
 
         function _openModal(message) {
@@ -851,6 +890,10 @@
 
     <div id="section-level" class="item1">
         <h2>Level: <span id="game-level">0</span></h2>
+    </div>
+
+    <div id="section-time" class="item8">
+        <h2>Time: <span id="game-time">0</span></h2>
     </div>
 
     <div id="section-score" class="item2">
