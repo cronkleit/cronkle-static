@@ -97,6 +97,7 @@
         }
 
         .row_block {
+            position: relative;
             font-size: 20px;
             border: 3px solid lightblue;
             width: 20px;
@@ -108,6 +109,20 @@
             color: black;
             padding: 15px;
             margin: 2px;
+        }
+
+        .row_block div {
+            position:absolute;
+            top:-5px;
+            right:-5px;
+            background-color:blue;
+            color:#fff;
+            padding:5px;
+            border-radius: 12px;
+            /*width:30px;*/
+            /*height:30px;*/
+            text-align:center;
+            font-size: 15px;
         }
 
         .row_block_help {
@@ -444,6 +459,13 @@
                     blockElement.className = 'row_block';
                     let onclick = '_actionFocus(' + i + ')';
                     blockElement.setAttribute('onclick', onclick);
+                    let valueElement = document.createElement('span');
+                    valueElement.id = 'gv-' + i;
+                    blockElement.append(valueElement);
+                    let hintElement = document.createElement('div');
+                    hintElement.id = 'gh-' + i;
+                    hintElement.style.visibility = 'hidden';
+                    blockElement.append(hintElement);
                     rowElement.append(blockElement);
                     i += 1;
                 }
@@ -542,6 +564,8 @@
             let guess = outcome ? outcome.guess : null;
             for (let i = 0; i < game.round.length; i++) {
                 let codeElement = document.getElementById('g-'+i);
+                let valueElement = document.getElementById('gv-'+i);
+                let hintElement = document.getElementById('gh-'+i);
                 codeElement.style.background = 'white';
                 codeElement.style.fontWeight = 'bold';
                 codeElement.style.color = 'black';
@@ -558,12 +582,24 @@
                 if (ham === 'H') {
                     codeElement.style.background = "green";
                     codeElement.style.color = "white";
+                    valueElement.innerText = _parseGuessCode(guess, game.round.hint.first, i);
+                    hintElement.style.visibility = 'hidden';
                 } else if (ham === 'A') {
-                    codeElement.style.background = "orange";
-                    codeElement.style.color = "white";
+                    valueElement.innerText = null;
+                    hintElement.style.background = "orange";
+                    hintElement.style.color = "white";
+                    hintElement.innerText = _parseGuessCode(guess, game.round.hint.first, i);
+                    hintElement.style.visibility = 'visible';
+                } else if (guess) {
+                    valueElement.innerText = null;
+                    hintElement.style.background = "red";
+                    hintElement.style.color = "white";
+                    hintElement.innerText = _parseGuessCode(guess, game.round.hint.first, i);
+                    hintElement.style.visibility = 'visible';
+                } else {
+                    valueElement.innerText = null;
+                    hintElement.style.visibility = 'hidden';
                 }
-                // codeElement.value = _parseGuessCode(guess, game.round.hint.first, i);
-                codeElement.innerText = _parseGuessCode(guess, game.round.hint.first, i);
             }
         }
 
@@ -673,10 +709,11 @@
             _timerStart(); // Start after first choice in round
             // What is already selected... where did that go?
             let actionElement = document.getElementById('g-'+focus);
+            let valueElement = document.getElementById('gv-'+focus);
             if (actionElement) {
                 // Reset current focus
                 //actionElement.value = choice;
-                actionElement.innerText = choice;
+                valueElement.innerText = choice;
                 // actionElement.style.borderWidth = null;
                 actionElement.style.borderColor = null;
                 _progress(game.round);
@@ -696,7 +733,7 @@
             let up = 0;
             let total = 0;
             for (let i = 0; i < round.length; i++) {
-                let guessElement = document.getElementById('g-' + i);
+                let guessElement = document.getElementById('gv-' + i);
                 // let incomplete = guessElement.value === "";
                 // let value = incomplete ? 0 : Number(guessElement.value);
                 let incomplete = guessElement.innerText === "";
@@ -790,21 +827,10 @@
 
         function _submitGuess() {
             let code = '';
-            // let containerElement = document.getElementById('guess-container');
-            // let children = containerElement.children;
-            // for (let i = 0; i < children.length; i++) {
-            //     let child = children[i];
-            //     if (child.id.startsWith('g-')) {
-            //         code += child.value;
-            //     }
-            // }
-            let gameBlockElements = document.getElementsByClassName('row_block');
-            for (let i = 0; i < gameBlockElements.length; i++) {
-                let gameBlockElement = gameBlockElements[i];
-                code += gameBlockElement.innerText;
+            for (let i = 0; i < game.round.length; i++) {
+                let guessElement = document.getElementById('gv-'+i);
+                code += guessElement.innerText;
             }
-            // let codeElement = document.getElementById('code');
-            // codeElement.value = code;
             const outcome = game.guess(code);
             if (outcome.solved) {
                 _timerStop();
