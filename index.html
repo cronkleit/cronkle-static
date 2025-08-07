@@ -395,7 +395,8 @@
             const element = document.getElementById('game-time');
             remaining--;
             if (remaining <= 0) {
-                _gameOver('Out of time... You lose!');
+                _timerStop();
+                _gameOver(false, 'Out of time... You lose!');
             } else {
                 element.innerText = remaining;
             }
@@ -410,18 +411,12 @@
         }
 
         function _initGame() {
-            _initUi();
             _initRound();
         }
 
         function _initRound() {
-            //console.log(JSON.stringify(game));
             _resetUi();
             _refreshUi();
-        }
-
-        function _initUi() {
-            _resetUiSectionAction();
         }
 
         function _resetElement(element) {
@@ -434,6 +429,7 @@
             _resetUiSectionTime();
             _resetUiSectionMessage();
             _resetUiSectionGuess();
+            _resetUiSectionAction();
             _resetUiSectionHistory();
         }
 
@@ -479,6 +475,8 @@
 
         function _resetUiSectionAction() {
             let actionElement = document.getElementById('action-container');
+            _resetElement(actionElement);
+            actionElement.hidden = false;
             let i = 0;
             for (let r = 0; r < 2; r++) {
                 let divElement = document.createElement('div');
@@ -668,6 +666,25 @@
             }
         }
 
+        function _refreshUiRoundOver(solved, message, label, action) {
+            let actionElement = document.getElementById('action-container');
+            actionElement.hidden = true;
+            _refreshUiSectionScore();
+            if (solved) {
+                _refreshUiSectionGuess();
+            }
+            // Message
+            let containerElement = document.getElementById('container-message');
+            _resetElement(containerElement);
+            let pElement = document.createElement('p');
+            pElement.innerText = message;
+            containerElement.appendChild(pElement);
+            let bElement = document.createElement('button');
+            bElement.innerText = label;
+            bElement.setAttribute('onclick', action);
+            containerElement.appendChild(bElement);
+        }
+
         function _nextFocus() {
             let next = focus + 1;
             if (next === game.round.length) { next = 0; }
@@ -841,19 +858,15 @@
                 _timerStop();
                 if (game.level >= 10) {
                     _saveStats();
-                    let message = 'You won!';
-                    _openModal(message);
-                    game = new Game(1);
-                    focus = 0;
-                    _nextFocus();
-                    _initRound();
+                    _gameOver(true, 'You won!');
                 } else {
                     _saveStats();
                     focus = 0;
-                    _roundSolved();
+                    _refreshUiRoundOver(true, 'Solved!', 'Next', '_roundNext()');
                 }
             } else if (game.round.attempts >= 5) {
-                _gameOver('No more attempts... You lose!');
+                _timerStop();
+                _gameOver(false, 'No more attempts... You lose!');
             } else {
                 focus = 0;
                 _nextFocus();
@@ -861,46 +874,21 @@
             }
         }
 
-        function _roundSolved() {
-            let containerElement = document.getElementById('container-message');
-            _resetElement(containerElement);
-            let pElement = document.createElement('p');
-            pElement.innerText = 'Solved!';
-            containerElement.appendChild(pElement);
-            let bElement = document.createElement('button');
-            bElement.type = 'button';
-            bElement.innerText = 'Next';
-            bElement.style.fontSize = '20px';
-            bElement.style.border = 'none';
-            bElement.style.background = '#898D8D';
-            bElement.style.fontWeight = 'bold';
-            bElement.style.color = 'white';
-            bElement.style.margin = '2px';
-            bElement.style.borderRadius = '5px';
-            let onclick = '_roundNext()';
-            bElement.setAttribute('onclick', onclick);
-            containerElement.appendChild(bElement);
-            _refreshUiSectionGuess();
-            let actionElement = document.getElementById('action-container');
-            actionElement.hidden = true;
-            _refreshUiSectionHistory();
-        }
-
         function _roundNext() {
-            let actionElement = document.getElementById('action-container');
-            actionElement.hidden = false;
             game.next();
             _nextFocus();
             _initRound();
         }
 
-        function _gameOver(message) {
-            _timerStop();
-            _openModal(message);
+        function _gameNext() {
             game = new Game(game.id+1);
-            focus = 0;
             _nextFocus();
             _initRound();
+        }
+
+        function _gameOver(solved, message) {
+            focus = 0;
+            _refreshUiRoundOver(solved, message, 'Start', '_gameNext()');
         }
 
         function _openModal(message) {
