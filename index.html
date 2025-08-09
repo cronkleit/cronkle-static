@@ -378,6 +378,144 @@
             }
         }
 
+        class GameUi {
+            constructor(game) {
+                this.game = game;
+                this.components = [];
+                this.components.push(new LevelUiComponent());
+                this.components.push(new TimeUiComponent());
+                this.components.push(new ScoreUiComponent());
+                this.components.push(new MessageUiComponent());
+                this.components.push(new GuessUiComponent());
+                this.components.push(new HintUiComponent());
+                this.components.push(new ChooseUiComponent());
+                this.components.push(new OutcomeUiComponent());
+            }
+            reset() {
+                this.components.forEach(component => component.reset(this.game));
+            }
+            refresh() {
+                this.components.forEach(component => component.refresh(this.game));
+            }
+        }
+
+        class GameUiComponent {
+            constructor() {
+            }
+            _resetElement(element) {
+                _resetElement(element);
+            }
+        }
+
+        class LevelUiComponent extends GameUiComponent {
+            constructor() {
+                super();
+            }
+            reset(game) {
+            }
+            refresh(game) {
+                _refreshUiSectionLevel();
+            }
+        }
+
+        class TimeUiComponent extends GameUiComponent {
+            constructor() {
+                super();
+            }
+            reset(game) {
+                const element = document.getElementById('game-time');
+                element.innerText = game.round.time;
+            }
+            refresh(game) {
+            }
+        }
+
+        class ScoreUiComponent extends GameUiComponent {
+            constructor() {
+                super();
+            }
+            reset(game) {
+            }
+            refresh(game) {
+                _refreshUiSectionScore();
+            }
+        }
+
+        class MessageUiComponent extends GameUiComponent {
+            constructor() {
+                super();
+            }
+            reset(game) {
+                let container = document.getElementById('container-message');
+                _resetElement(container);
+            }
+            refresh(game) {
+                // Reset
+                let container = document.getElementById('container-message');
+                this._resetElement(container);
+                // Message
+                let message;
+                if ((game.level === 1) && !game.round.attempts) {
+                    message = 'Welcome! Guess the numeric code...';
+                } else if ((game.level !== 1) && !game.round.attempts) {
+                    message = 'Cool! Try guessing this code...';
+                } else {
+                    let remaining = 5 - game.round.attempts;
+                    let attempts = (remaining === 1) ? ' attempt ' : ' attempts ';
+                    message = 'Nope! '+remaining+attempts+'remaining...';
+                }
+                let pElement = document.createElement('p');
+                pElement.innerText = message;
+                container.appendChild(pElement);
+            }
+        }
+
+        class GuessUiComponent extends GameUiComponent {
+            constructor() {
+                super();
+            }
+            reset(game) {
+                _resetUiSectionGuess();
+            }
+            refresh(game) {
+                _refreshUiSectionGuess();
+            }
+        }
+
+        class HintUiComponent extends GameUiComponent {
+            constructor() {
+                super();
+            }
+            reset(game) {
+            }
+            refresh(game) {
+                _refreshUiSectionHint();
+            }
+        }
+
+        class ChooseUiComponent extends GameUiComponent {
+            constructor() {
+                super();
+            }
+            reset(game) {
+                _resetUiSectionAction();
+            }
+            refresh(game) {
+            }
+        }
+
+        class OutcomeUiComponent extends GameUiComponent {
+            constructor() {
+                super();
+            }
+            reset(game) {
+                _resetUiSectionHistory();
+            }
+            refresh(game) {
+                _refreshUiSectionHistory();
+            }
+        }
+
         var ticker;
         var remaining;
 
@@ -405,6 +543,7 @@
         }
 
         var game = new Game(1);
+        var gameUi = new GameUi(game);
         var focus = 0;
         _nextFocus();
 
@@ -428,21 +567,7 @@
         }
 
         function _resetUi() {
-            _resetUiSectionTime();
-            _resetUiSectionMessage();
-            _resetUiSectionGuess();
-            _resetUiSectionAction();
-            _resetUiSectionHistory();
-        }
-
-        function _resetUiSectionTime() {
-            const element = document.getElementById('game-time');
-            element.innerText = game.round.time;
-        }
-
-        function _resetUiSectionMessage() {
-            let containerElement = document.getElementById('container-message');
-            _resetElement(containerElement);
+            gameUi.reset();
         }
 
         function _resetUiSectionGuess() {
@@ -528,30 +653,7 @@
         }
 
         function _refreshUi() {
-            _refreshUiSectionMessage();
-            _refreshUiSectionLevel();
-            _refreshUiSectionScore();
-            _refreshUiSectionGuess();
-            _refreshUiSectionHint();
-            _refreshUiSectionHistory();
-        }
-
-        function _refreshUiSectionMessage() {
-            let message;
-            if ((game.level === 1) && !game.round.attempts) {
-                message = 'Welcome! Guess the numeric code...';
-            } else if ((game.level !== 1) && !game.round.attempts) {
-                message = 'Cool! Try guessing this code...';
-            } else {
-                let remaining = 5 - game.round.attempts;
-                let attempts = (remaining === 1) ? ' attempt ' : ' attempts ';
-                message = 'Nope! '+remaining+attempts+'remaining...';
-            }
-            let containerElement = document.getElementById('container-message');
-            _resetElement(containerElement);
-            let pElement = document.createElement('p');
-            pElement.innerText = message;
-            containerElement.appendChild(pElement);
+            gameUi.refresh();
         }
 
         function _refreshUiSectionLevel() {
@@ -884,6 +986,7 @@
 
         function _gameNext() {
             game = new Game(game.id+1);
+            gameUi = new GameUi(game);
             _nextFocus();
             _initRound();
         }
