@@ -161,6 +161,14 @@
     </style>
     <script>
 
+        const _STATE_STARTED = 1;
+        const _STATE_NEXT = 2;
+        const _STATE_SOLVING = 3;
+        const _STATE_SOLVED = 4;
+        const _STATE_EXHAUSTED = 5;
+        const _STATE_EXPIRED = 6;
+        const _STATE_WON = 7;
+
         const _PROGRESS_FIRST = '0';
         const _PROGRESS_HIT_FIRST = 'H';
         const _PROGRESS_HIT_AFTER_MISS = 'G';
@@ -173,23 +181,42 @@
 
             constructor(id) {
                 this.id = id;
+                this.state = _STATE_STARTED;
                 this.level = 1;
                 this.round = new Round(this.level);
                 this.score = 0;
                 this.attempts = 0;
             }
 
+            next() {
+                this.state = _STATE_NEXT;
+                this.level += 1;
+                this.round = new Round(this.level);
+                return this.round;
+            }
+
             guess(code) {
+                this.state = _STATE_SOLVING;
                 let outcome = this.round.guess(code);
                 this.score += outcome.points;
                 this.attempts += 1;
                 return outcome;
             }
 
-            next() {
-                this.level += 1;
-                this.round = new Round(this.level);
-                return this.round;
+            solved() {
+                this.state = _STATE_SOLVED;
+            }
+
+            exhausted() {
+                this.state = _STATE_EXHAUSTED;
+            }
+
+            expired() {
+                this.state = _STATE_EXPIRED;
+            }
+
+            won() {
+                this.state = _STATE_WON;
             }
 
         }
@@ -397,6 +424,23 @@
             refresh() {
                 this.components.forEach(component => component.refresh(this.game));
             }
+            update() {
+                if (this.game.state === _STATE_STARTED) {
+                    this.components.forEach(component => component.started(this.game));
+                } else if (this.game.state === _STATE_NEXT) {
+                    this.components.forEach(component => component.next(this.game));
+                } else if (this.game.state === _STATE_SOLVING) {
+                    this.components.forEach(component => component.solving(this.game));
+                } else if (this.game.state === _STATE_SOLVED) {
+                    this.components.forEach(component => component.solved(this.game));
+                } else if (this.game.state === _STATE_EXHAUSTED) {
+                    this.components.forEach(component => component.exhausted(this.game));
+                } else if (this.game.state === _STATE_EXPIRED) {
+                    this.components.forEach(component => component.expired(this.game));
+                } else if (this.game.state === _STATE_WON) {
+                    this.components.forEach(component => component.won(this.game));
+                }
+            }
         }
 
         class GameUiComponent {
@@ -416,6 +460,20 @@
             refresh(game) {
                 _refreshUiSectionLevel();
             }
+            started(game) {
+            }
+            next(game) {
+            }
+            solving(game) {
+            }
+            solved(game) {
+            }
+            exhausted(game) {
+            }
+            expired(game) {
+            }
+            won(game) {
+            }
         }
 
         class TimeUiComponent extends GameUiComponent {
@@ -428,6 +486,20 @@
             }
             refresh(game) {
             }
+            started(game) {
+            }
+            next(game) {
+            }
+            solving(game) {
+            }
+            solved(game) {
+            }
+            exhausted(game) {
+            }
+            expired(game) {
+            }
+            won(game) {
+            }
         }
 
         class ScoreUiComponent extends GameUiComponent {
@@ -439,6 +511,24 @@
             refresh(game) {
                 _refreshUiSectionScore();
             }
+            started(game) {
+            }
+            next(game) {
+            }
+            solving(game) {
+            }
+            solved(game) {
+                _refreshUiSectionScore();
+            }
+            exhausted(game) {
+                _refreshUiSectionScore();
+            }
+            expired(game) {
+                _refreshUiSectionScore();
+            }
+            won(game) {
+                _refreshUiSectionScore();
+            }
         }
 
         class MessageUiComponent extends GameUiComponent {
@@ -446,27 +536,54 @@
                 super();
             }
             reset(game) {
-                let container = document.getElementById('container-message');
-                _resetElement(container);
             }
             refresh(game) {
+            }
+            started(game) {
+                let message = 'Welcome! Guess the numeric code...';
+                this._container(message);
+            }
+            next(game) {
+                let message = 'Cool! Try guessing this code...';
+                this._container(message);
+            }
+            solving(game) {
+                let remaining = 5 - game.round.attempts;
+                let attempts = (remaining === 1) ? ' attempt ' : ' attempts ';
+                let message = 'Nope! '+remaining+attempts+'remaining...';
+                this._container(message);
+            }
+            solved(game) {
+                let message = 'Solved!';
+                this._container(message, 'Next', '_roundNext()');
+            }
+            exhausted(game) {
+                let message = 'No more attempts... You lose!';
+                this._container(message, 'Start', '_gameNext()');
+            }
+            expired(game) {
+                let message = 'Out of time... You lose!';
+                this._container(message, 'Start', '_gameNext()');
+            }
+            won(game) {
+                let message = 'You won!';
+                this._container(message, 'Start', '_gameNext()');
+            }
+            _container(message, label, action) {
                 // Reset
                 let container = document.getElementById('container-message');
                 this._resetElement(container);
                 // Message
-                let message;
-                if ((game.level === 1) && !game.round.attempts) {
-                    message = 'Welcome! Guess the numeric code...';
-                } else if ((game.level !== 1) && !game.round.attempts) {
-                    message = 'Cool! Try guessing this code...';
-                } else {
-                    let remaining = 5 - game.round.attempts;
-                    let attempts = (remaining === 1) ? ' attempt ' : ' attempts ';
-                    message = 'Nope! '+remaining+attempts+'remaining...';
-                }
                 let pElement = document.createElement('p');
                 pElement.innerText = message;
                 container.appendChild(pElement);
+                // Button
+                if (label && action) {
+                    let bElement = document.createElement('button');
+                    bElement.innerText = label;
+                    bElement.setAttribute('onclick', action);
+                    container.appendChild(bElement);
+                }
             }
         }
 
@@ -480,6 +597,22 @@
             refresh(game) {
                 _refreshUiSectionGuess();
             }
+            started(game) {
+            }
+            next(game) {
+            }
+            solving(game) {
+            }
+            solved(game) {
+                _refreshUiSectionGuess();
+            }
+            exhausted(game) {
+            }
+            expired(game) {
+            }
+            won(game) {
+                _refreshUiSectionGuess();
+            }
         }
 
         class HintUiComponent extends GameUiComponent {
@@ -490,6 +623,20 @@
             }
             refresh(game) {
                 _refreshUiSectionHint();
+            }
+            started(game) {
+            }
+            next(game) {
+            }
+            solving(game) {
+            }
+            solved(game) {
+            }
+            exhausted(game) {
+            }
+            expired(game) {
+            }
+            won(game) {
             }
         }
 
@@ -502,6 +649,28 @@
             }
             refresh(game) {
             }
+            started(game) {
+            }
+            next(game) {
+            }
+            solving(game) {
+            }
+            solved(game) {
+                let container = document.getElementById('action-container');
+                container.hidden = true;
+            }
+            exhausted(game) {
+                let container = document.getElementById('action-container');
+                container.hidden = true;
+            }
+            expired(game) {
+                let container = document.getElementById('action-container');
+                container.hidden = true;
+            }
+            won(game) {
+                let container = document.getElementById('action-container');
+                container.hidden = true;
+            }
         }
 
         class OutcomeUiComponent extends GameUiComponent {
@@ -513,6 +682,20 @@
             }
             refresh(game) {
                 _refreshUiSectionHistory();
+            }
+            started(game) {
+            }
+            next(game) {
+            }
+            solving(game) {
+            }
+            solved(game) {
+            }
+            exhausted(game) {
+            }
+            expired(game) {
+            }
+            won(game) {
             }
         }
 
@@ -536,7 +719,9 @@
             remaining--;
             if (remaining <= 0) {
                 _timerStop();
-                _gameOver(false, 'Out of time... You lose!');
+                focus = 0;
+                game.expired();
+                gameUi.update();
             } else {
                 element.innerText = remaining;
             }
@@ -568,6 +753,7 @@
 
         function _resetUi() {
             gameUi.reset();
+            gameUi.update();
         }
 
         function _resetUiSectionGuess() {
@@ -654,6 +840,7 @@
 
         function _refreshUi() {
             gameUi.refresh();
+            gameUi.update();
         }
 
         function _refreshUiSectionLevel() {
@@ -768,25 +955,6 @@
                     containerHistory.removeChild(containerHistory.lastChild);
                 }
             }
-        }
-
-        function _refreshUiRoundOver(solved, message, label, action) {
-            let actionElement = document.getElementById('action-container');
-            actionElement.hidden = true;
-            _refreshUiSectionScore();
-            if (solved) {
-                _refreshUiSectionGuess();
-            }
-            // Message
-            let containerElement = document.getElementById('container-message');
-            _resetElement(containerElement);
-            let pElement = document.createElement('p');
-            pElement.innerText = message;
-            containerElement.appendChild(pElement);
-            let bElement = document.createElement('button');
-            bElement.innerText = label;
-            bElement.setAttribute('onclick', action);
-            containerElement.appendChild(bElement);
         }
 
         function _nextFocus() {
@@ -962,15 +1130,20 @@
                 _timerStop();
                 if (game.level >= 10) {
                     _saveStats();
-                    _gameOver(true, 'You won!');
+                    focus = 0;
+                    game.won();
+                    gameUi.update();
                 } else {
                     _saveStats();
                     focus = 0;
-                    _refreshUiRoundOver(true, 'Solved!', 'Next', '_roundNext()');
+                    game.solved();
+                    gameUi.update();
                 }
             } else if (game.round.attempts >= 5) {
                 _timerStop();
-                _gameOver(false, 'No more attempts... You lose!');
+                focus = 0;
+                game.exhausted();
+                gameUi.update();
             } else {
                 focus = 0;
                 _nextFocus();
@@ -989,11 +1162,6 @@
             gameUi = new GameUi(game);
             _nextFocus();
             _initRound();
-        }
-
-        function _gameOver(solved, message) {
-            focus = 0;
-            _refreshUiRoundOver(solved, message, 'Start', '_gameNext()');
         }
 
         function _openModal(message) {
