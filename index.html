@@ -196,6 +196,7 @@
             }
 
             choice(block, value) {
+                this.state = _STATE_SOLVING;
                 this.round.choice(block, value);
             }
 
@@ -1069,19 +1070,8 @@
             if (choice !== focus) {
                 let ham = _ham(choice);
                 if (ham !== 'H') {
-                    let actionElement = document.getElementById('g-'+focus);
-                    if (actionElement) {
-                        // Reset current focus
-                        // actionElement.style.borderWidth = null;
-                        actionElement.style.borderColor = null;
-                    }
-                    // Refocus
                     focus = choice;
-                    actionElement = document.getElementById('g-'+focus);
-                    if (actionElement) {
-                        // actionElement.style.borderWidth = "5px";
-                        actionElement.style.borderColor = 'black';
-                    }
+                    gameUi.update();
                 }
             }
         }
