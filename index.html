@@ -195,6 +195,10 @@
                 return this.round;
             }
 
+            choice(block, value) {
+                this.round.choice(block, value);
+            }
+
             guess(code) {
                 this.state = _STATE_SOLVING;
                 let outcome = this.round.guess(code);
@@ -228,10 +232,16 @@
                 this.length = this.level + 2;
                 this.answer = this._answer(this.length);
                 this.hint = new Hint(this.answer);
+                this.choices = this._choices(this.answer[0], this.length);
                 this.outcomes = [];
                 this.attempts = 0;
                 this.progress = [];
                 this.time = 15 + ((level - 1) * 15);
+            }
+
+            choice(block, value) {
+                let choice = this.choices[block];
+                choice.chose(value);
             }
 
             guess(code) {
@@ -239,6 +249,7 @@
                 this.outcomes.unshift(r);
                 if (this.outcomes.length > 5) { this.outcomes.splice(5); }
                 this.attempts += 1;
+                this.choices = this._choices(this.answer[0], this.length, r);
                 return r;
             }
 
@@ -253,6 +264,21 @@
                 const max = Math.floor(10);
                 for (let i=0; i<length; i++) {
                     r += Math.floor(Math.random() * (max - min) + min);
+                }
+                return r;
+            }
+
+            _choices(first, length, outcome) {
+                let r = new Array(length);
+                for (let i=0; i<length; i++) {
+                    let choice = new Choice(i);
+                    if (i === 0) {
+                        choice.chose(first);
+                    }
+                    if (outcome) {
+                        choice.guessed(outcome);
+                    }
+                    r[i] = choice;
                 }
                 return r;
             }
@@ -285,6 +311,29 @@
                         }
                     }
                     this.total += nextNumeral;
+                }
+            }
+
+        }
+
+        class Choice {
+
+            constructor(block) {
+                this.block = block;
+                this.value = -1;
+                this.hint = -1;
+                this.ham = (block === 0) ? 'H' : 'M';
+            }
+
+            chose(value) {
+                this.value = Number(value);
+            }
+
+            guessed(outcome) {
+                this.hint = Number(outcome.guess[this.block]);
+                this.ham = _hammy(outcome.ham, this.block);
+                if (this.ham === 'H') {
+                    this.value = this.hint;
                 }
             }
 
@@ -607,9 +656,6 @@
                 // Reset
                 let container = document.getElementById('guess-container');
                 this._resetElement(container);
-                // Guess
-                let outcome = game.round.outcomes ? game.round.outcomes[0] : null;
-                let guess = outcome ? outcome.guess : null;
                 // Blocks
                 let i = 0;
                 let rows = Math.ceil(game.round.length / 5);
@@ -620,13 +666,16 @@
                     let remaining = (5 * r) - game.round.length;
                     let columns = (remaining > 0) ? (5 - remaining) : 5;
                     for (let c = 0; c < columns; c++) {
-                        let blockElement = this._block(game, i, guess);
+                        let blockElement = this._block(game.round, i);
                         rowElement.append(blockElement);
                         i += 1;
                     }
                 }
             }
-            _block(game, block, guess) {
+            _block(round, block) {
+                // Choice
+                let choice = round.choices[block];
+                let ham = choice.ham;
                 // Block
                 let blockElement = document.createElement('div');
                 blockElement.id = 'g-' + block;
@@ -638,53 +687,38 @@
                 blockElement.style.margin = '2px';
                 blockElement.style.borderRadius = '5px';
                 blockElement.style.borderColor = null;
+                let onclick = '_actionFocus(' + block + ')';
+                blockElement.setAttribute('onclick', onclick);
                 if ((block !== 0) && (block === focus)) {
                     blockElement.style.borderColor = "black";
                 }
-                let onclick = '_actionFocus(' + block + ')';
-                blockElement.setAttribute('onclick', onclick);
+                if (ham === 'H') {
+                    blockElement.style.background = "green";
+                    blockElement.style.color = "white";
+                }
                 // Value
                 let valueElement = document.createElement('span');
                 valueElement.id = 'gv-' + block;
+                valueElement.innerText = (choice.value !== -1) ? choice.value : null;
                 blockElement.append(valueElement);
                 // Hint
                 let hintElement = document.createElement('div');
                 hintElement.id = 'gh-' + block;
+                hintElement.innerText = (choice.hint !== -1) ? choice.hint : null;
                 hintElement.style.visibility = 'hidden';
+                if (choice.hint !== -1) {
+                    if (ham === 'A') {
+                        hintElement.style.background = "orange";
+                        hintElement.style.color = "white";
+                        hintElement.style.visibility = 'visible';
+                    } else if (ham === 'M') {
+                        hintElement.style.background = "red";
+                        hintElement.style.color = "white";
+                        hintElement.style.visibility = 'visible';
+                    }
+                }
                 blockElement.append(hintElement);
-                // HAM
-                let ham = _ham(block);
-                if (ham === 'H') {
-                    blockElement.style.background = "green";
-                    blockElement.style.color = "white";
-                    valueElement.innerText = this._value(guess, game.round.hint.first, block);
-                    hintElement.style.visibility = 'hidden';
-                } else if (ham === 'A') {
-                    valueElement.innerText = null;
-                    hintElement.style.background = "orange";
-                    hintElement.style.color = "white";
-                    hintElement.innerText = this._value(guess, game.round.hint.first, block);
-                    hintElement.style.visibility = 'visible';
-                } else if (guess) {
-                    valueElement.innerText = null;
-                    hintElement.style.background = "red";
-                    hintElement.style.color = "white";
-                    hintElement.innerText = this._value(guess, game.round.hint.first, block);
-                    hintElement.style.visibility = 'visible';
-                } else {
-                    valueElement.innerText = null;
-                    hintElement.style.visibility = 'hidden';
-                }
                 return blockElement;
-            }
-            _value(guess, first, index) {
-                let r = '';
-                if (index === 0) {
-                    r = first;
-                } else if (guess) {
-                    r = guess.split("")[index];
-                }
-                return r;
             }
         }
 
@@ -828,7 +862,7 @@
                 let container = document.getElementById('container-history');
                 this._resetElement(container);
                 // Previous
-                for (let o = game.round.outcomes.length-1; o >= 0; o--) {
+                for (let o = 0; o < game.round.outcomes.length; o++) {
                     let outcome = game.round.outcomes[o];
                     this._previous(outcome, container);
                 }
@@ -958,24 +992,10 @@
 
         function _actionChoice(choice) {
             _timerStart(); // Start after first choice in round
-            // What is already selected... where did that go?
-            let actionElement = document.getElementById('g-'+focus);
-            let valueElement = document.getElementById('gv-'+focus);
-            if (actionElement) {
-                // Reset current focus
-                //actionElement.value = choice;
-                valueElement.innerText = choice;
-                // actionElement.style.borderWidth = null;
-                actionElement.style.borderColor = null;
-                _progress(game.round);
-                // Refocus
-                _nextFocus();
-                actionElement = document.getElementById('g-' + focus);
-                if (actionElement) {
-                    // actionElement.style.borderWidth = "5px";
-                    actionElement.style.borderColor = 'black';
-                }
-            }
+            game.choice(focus, choice);
+            _progress(game.round);
+            _nextFocus(); // Refocus
+            gameUi.update();
         }
 
         function _progress(round) {
