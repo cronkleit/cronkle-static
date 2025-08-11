@@ -421,9 +421,6 @@
             reset() {
                 this.components.forEach(component => component.reset(this.game));
             }
-            refresh() {
-                this.components.forEach(component => component.refresh(this.game));
-            }
             update() {
                 if (this.game.state === _STATE_STARTED) {
                     this.components.forEach(component => component.started(this.game));
@@ -457,12 +454,11 @@
             }
             reset(game) {
             }
-            refresh(game) {
-                _refreshUiSectionLevel();
-            }
             started(game) {
+                this._element(game);
             }
             next(game) {
+                this._element(game);
             }
             solving(game) {
             }
@@ -474,6 +470,10 @@
             }
             won(game) {
             }
+            _element(game) {
+                const element = document.getElementById('game-level');
+                element.innerText = game.level;
+            }
         }
 
         class TimeUiComponent extends GameUiComponent {
@@ -483,8 +483,6 @@
             reset(game) {
                 const element = document.getElementById('game-time');
                 element.innerText = game.round.time;
-            }
-            refresh(game) {
             }
             started(game) {
             }
@@ -508,26 +506,27 @@
             }
             reset(game) {
             }
-            refresh(game) {
-                _refreshUiSectionScore();
-            }
             started(game) {
+                this._element(game);
             }
             next(game) {
             }
             solving(game) {
+                this._element(game);
             }
             solved(game) {
-                _refreshUiSectionScore();
+                this._element(game);
             }
             exhausted(game) {
-                _refreshUiSectionScore();
             }
             expired(game) {
-                _refreshUiSectionScore();
             }
             won(game) {
-                _refreshUiSectionScore();
+                this._element(game);
+            }
+            _element(game) {
+                const element = document.getElementById('game-score');
+                element.innerText = game.score;
             }
         }
 
@@ -536,8 +535,6 @@
                 super();
             }
             reset(game) {
-            }
-            refresh(game) {
             }
             started(game) {
                 let message = 'Welcome! Guess the numeric code...';
@@ -594,14 +591,14 @@
             reset(game) {
                 _resetUiSectionGuess();
             }
-            refresh(game) {
+            started(game) {
                 _refreshUiSectionGuess();
             }
-            started(game) {
-            }
             next(game) {
+                _refreshUiSectionGuess();
             }
             solving(game) {
+                _refreshUiSectionGuess();
             }
             solved(game) {
                 _refreshUiSectionGuess();
@@ -621,14 +618,14 @@
             }
             reset(game) {
             }
-            refresh(game) {
+            started(game) {
                 _refreshUiSectionHint();
             }
-            started(game) {
-            }
             next(game) {
+                _refreshUiSectionHint();
             }
             solving(game) {
+                _refreshUiSectionHint();
             }
             solved(game) {
             }
@@ -646,8 +643,6 @@
             }
             reset(game) {
                 _resetUiSectionAction();
-            }
-            refresh(game) {
             }
             started(game) {
             }
@@ -680,14 +675,12 @@
             reset(game) {
                 _resetUiSectionHistory();
             }
-            refresh(game) {
-                _refreshUiSectionHistory();
-            }
             started(game) {
             }
             next(game) {
             }
             solving(game) {
+                _refreshUiSectionHistory();
             }
             solved(game) {
             }
@@ -742,7 +735,7 @@
 
         function _initRound() {
             _resetUi();
-            _refreshUi();
+            gameUi.update();
         }
 
         function _resetElement(element) {
@@ -836,21 +829,6 @@
         function _resetUiSectionHistory() {
             let containerElement = document.getElementById('container-history');
             _resetElement(containerElement);
-        }
-
-        function _refreshUi() {
-            gameUi.refresh();
-            gameUi.update();
-        }
-
-        function _refreshUiSectionLevel() {
-            const element = document.getElementById('game-level');
-            element.innerText = game.level;
-        }
-
-        function _refreshUiSectionScore() {
-            const element = document.getElementById('game-score');
-            element.innerText = game.score;
         }
 
         function _refreshUiSectionGuess() {
@@ -1147,7 +1125,7 @@
             } else {
                 focus = 0;
                 _nextFocus();
-                _refreshUi();
+                gameUi.update();
             }
         }
 
