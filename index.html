@@ -200,9 +200,9 @@
                 this.round.choice(block, value);
             }
 
-            guess(code) {
+            guess() {
                 this.state = _STATE_SOLVING;
-                let outcome = this.round.guess(code);
+                let outcome = this.round.guess();
                 this.score += outcome.points;
                 this.attempts += 1;
                 return outcome;
@@ -234,6 +234,7 @@
                 this.answer = this._answer(this.length);
                 this.hint = new Hint(this.answer);
                 this.choices = this._choices(this.answer[0], this.length);
+                this.match = this._match();
                 this.outcomes = [];
                 this.attempts = 0;
                 this.progress = [];
@@ -243,14 +244,16 @@
             choice(block, value) {
                 let choice = this.choices[block];
                 choice.chose(value);
+                this.match = this._match();
             }
 
-            guess(code) {
-                const r = new Outcome(this.answer, code, this.progress);
+            guess() {
+                const r = new Outcome(this.answer, this._code(), this.progress);
                 this.outcomes.unshift(r);
                 if (this.outcomes.length > 5) { this.outcomes.splice(5); }
                 this.attempts += 1;
                 this.choices = this._choices(this.answer[0], this.length, r);
+                this.match = this._match();
                 return r;
             }
 
@@ -280,6 +283,38 @@
                         choice.guessed(outcome);
                     }
                     r[i] = choice;
+                }
+                return r;
+            }
+
+            _match() {
+                let same = 0;
+                let down = 0;
+                let up = 0;
+                let total = 0;
+                for (let i = 0; i < this.length; i++) {
+                    let choice = this.choices[i];
+                    let incomplete = (choice.value === -1);
+                    let value = incomplete ? 0 : Number(choice.value);
+                    if ((i !== 0) && !incomplete) {
+                        if (this.hint.first === value) {
+                            same += 1;
+                        } else if (this.hint.first < value) {
+                            up += 1;
+                        } else {
+                            down += 1;
+                        }
+                    }
+                    total += value;
+                }
+                return new Match(same, down, up, total);
+            }
+
+            _code() {
+                let r = '';
+                for (let i = 0; i < this.length; i++) {
+                    let choice = this.choices[i];
+                    r += choice.value;
                 }
                 return r;
             }
@@ -336,6 +371,17 @@
                 if (this.ham === 'H') {
                     this.value = this.hint;
                 }
+            }
+
+        }
+
+        class Match {
+
+            constructor(same, down, up, total) {
+                this.same = same;
+                this.down = down;
+                this.up = up;
+                this.total = total;
             }
 
         }
@@ -464,9 +510,8 @@
                 this.components.push(new ScoreUiComponent());
                 this.components.push(new MessageUiComponent());
                 this.components.push(new GuessUiComponent());
-                this.components.push(new ChooseUiComponent()); // XXX: Should be after hint! - _progress()
                 this.components.push(new HintUiComponent());
-                //this.components.push(new ChooseUiComponent());
+                this.components.push(new ChooseUiComponent());
                 this.components.push(new OutcomeUiComponent());
             }
             update() {
@@ -728,13 +773,13 @@
                 super();
             }
             started(game) {
-                this._refresh();
+                this._refresh(game.round);
             }
             next(game) {
-                this._refresh();
+                this._refresh(game.round);
             }
             solving(game) {
-                this._refresh();
+                this._refresh(game.round);
             }
             solved(game) {
             }
@@ -744,20 +789,60 @@
             }
             won(game) {
             }
-            _refresh() {
+            _refresh(round) {
+                let checked = 0;
                 // Same
                 let hintElement = document.getElementById('hint-same');
-                hintElement.innerText = game.round.hint.same;
+                hintElement.innerText = round.hint.same;
+                let progressElement = document.getElementById('same');
+                if (round.hint.same === round.match.same) {
+                    progressElement.innerHTML = '&#10003';
+                    progressElement.style.color = 'green';
+                    checked += 1;
+                } else {
+                    let remaining = round.hint.same - round.match.same;
+                    progressElement.innerHTML = '&#10007'+' '+remaining;
+                    progressElement.style.color = 'red';
+                }
                 // Above
                 hintElement = document.getElementById('hint-above');
-                hintElement.innerText = game.round.hint.above;
+                hintElement.innerText = round.hint.above;
+                progressElement = document.getElementById('down');
+                if (round.hint.below === round.match.down) {
+                    progressElement.innerHTML = '&#10003';
+                    progressElement.style.color = 'green';
+                    checked += 1;
+                } else {
+                    let remaining = round.hint.below - round.match.down;
+                    progressElement.innerHTML = '&#10007'+' '+remaining;
+                    progressElement.style.color = 'red';
+                }
                 // Below
                 hintElement = document.getElementById('hint-below');
-                hintElement.innerText = game.round.hint.below;
+                hintElement.innerText = round.hint.below;
+                progressElement = document.getElementById('up');
+                if (round.hint.above === round.match.up) {
+                    progressElement.innerHTML = '&#10003';
+                    progressElement.style.color = 'green';
+                    checked += 1;
+                } else {
+                    let remaining = round.hint.above - round.match.up;
+                    progressElement.innerHTML = '&#10007'+' '+remaining;
+                    progressElement.style.color = 'red';
+                }
                 // Total
                 hintElement = document.getElementById('hint-total');
-                hintElement.innerText = game.round.hint.total;
-                _progress(game.round);
+                hintElement.innerText = round.hint.total;
+                progressElement = document.getElementById('total');
+                if (round.hint.total === round.match.total) {
+                    progressElement.innerHTML = '&#10003';
+                    progressElement.style.color = 'green';
+                    checked += 1;
+                } else {
+                    let remaining = round.hint.total - round.match.total;
+                    progressElement.innerHTML = '&#10007'+' '+remaining;
+                    progressElement.style.color = 'red';
+                }
             }
         }
 
@@ -772,6 +857,7 @@
                 this._container(game);
             }
             solving(game) {
+                this._container(game);
             }
             solved(game) {
                 let container = document.getElementById('action-container');
@@ -829,11 +915,32 @@
                             choiceElement.style.borderRadius = '5px';
                             let onclick = '_submitGuess()';
                             choiceElement.setAttribute('onclick', onclick);
+                            choiceElement.hidden = this._hide(game.round);
                             divElement.appendChild(choiceElement);
                         }
                     }
                     container.appendChild(divElement);
                 }
+            }
+            _hide(round) {
+                let checked = 0;
+                // Same
+                if (round.hint.same === round.match.same) {
+                    checked += 1;
+                }
+                // Above
+                if (round.hint.below === round.match.down) {
+                    checked += 1;
+                }
+                // Below
+                if (round.hint.above === round.match.up) {
+                    checked += 1;
+                }
+                // Total
+                if (round.hint.total === round.match.total) {
+                    checked += 1;
+                }
+                return (checked !== 4);
             }
         }
 
@@ -994,76 +1101,8 @@
         function _actionChoice(choice) {
             _timerStart(); // Start after first choice in round
             game.choice(focus, choice);
-            _progress(game.round);
             _nextFocus(); // Refocus
             gameUi.update();
-        }
-
-        function _progress(round) {
-            let same = 0;
-            let down = 0;
-            let up = 0;
-            let total = 0;
-            for (let i = 0; i < round.length; i++) {
-                let guessElement = document.getElementById('gv-' + i);
-                // let incomplete = guessElement.value === "";
-                // let value = incomplete ? 0 : Number(guessElement.value);
-                let incomplete = guessElement.innerText === "";
-                let value = incomplete ? 0 : Number(guessElement.innerText);
-                if ((i !== 0) && !incomplete) {
-                    if (round.hint.first === value) {
-                        same += 1;
-                    } else if (round.hint.first < value) {
-                        up += 1;
-                    } else {
-                        down += 1;
-                    }
-                }
-                total += value;
-            }
-            let checked = 0;
-            let progressElement = document.getElementById('same');
-            if (round.hint.same === same) {
-                progressElement.innerHTML = '&#10003';
-                progressElement.style.color = 'green';
-                checked += 1;
-            } else {
-                let remaining = round.hint.same - same;
-                progressElement.innerHTML = '&#10007'+' '+remaining;
-                progressElement.style.color = 'red';
-            }
-            progressElement = document.getElementById('down');
-            if (round.hint.below === down) {
-                progressElement.innerHTML = '&#10003';
-                progressElement.style.color = 'green';
-                checked += 1;
-            } else {
-                let remaining = round.hint.below - down;
-                progressElement.innerHTML = '&#10007'+' '+remaining;
-                progressElement.style.color = 'red';
-            }
-            progressElement = document.getElementById('up');
-            if (round.hint.above === up) {
-                progressElement.innerHTML = '&#10003';
-                progressElement.style.color = 'green';
-                checked += 1;
-            } else {
-                let remaining = round.hint.above - up;
-                progressElement.innerHTML = '&#10007'+' '+remaining;
-                progressElement.style.color = 'red';
-            }
-            progressElement = document.getElementById('total');
-            if (round.hint.total === total) {
-                progressElement.innerHTML = '&#10003';
-                progressElement.style.color = 'green';
-                checked += 1;
-            } else {
-                let remaining = round.hint.total - total;
-                progressElement.innerHTML = '&#10007'+' '+remaining;
-                progressElement.style.color = 'red';
-            }
-            let enterElement = document.getElementById('choice-enter');
-            enterElement.hidden = checked !== 4;
         }
 
         function _actionFocus(choice) {
@@ -1077,12 +1116,7 @@
         }
 
         function _submitGuess() {
-            let code = '';
-            for (let i = 0; i < game.round.length; i++) {
-                let guessElement = document.getElementById('gv-'+i);
-                code += guessElement.innerText;
-            }
-            const outcome = game.guess(code);
+            const outcome = game.guess();
             if (outcome.solved) {
                 _timerStop();
                 if (game.level >= 10) {
