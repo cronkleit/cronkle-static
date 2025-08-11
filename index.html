@@ -414,12 +414,10 @@
                 this.components.push(new ScoreUiComponent());
                 this.components.push(new MessageUiComponent());
                 this.components.push(new GuessUiComponent());
+                this.components.push(new ChooseUiComponent()); // XXX: Should be after hint! - _progress()
                 this.components.push(new HintUiComponent());
-                this.components.push(new ChooseUiComponent());
+                //this.components.push(new ChooseUiComponent());
                 this.components.push(new OutcomeUiComponent());
-            }
-            reset() {
-                this.components.forEach(component => component.reset(this.game));
             }
             update() {
                 if (this.game.state === _STATE_STARTED) {
@@ -444,15 +442,15 @@
             constructor() {
             }
             _resetElement(element) {
-                _resetElement(element);
+                while (element.firstChild) {
+                    element.removeChild(element.lastChild);
+                }
             }
         }
 
         class LevelUiComponent extends GameUiComponent {
             constructor() {
                 super();
-            }
-            reset(game) {
             }
             started(game) {
                 this._element(game);
@@ -480,13 +478,11 @@
             constructor() {
                 super();
             }
-            reset(game) {
-                const element = document.getElementById('game-time');
-                element.innerText = game.round.time;
-            }
             started(game) {
+                this._element(game);
             }
             next(game) {
+                this._element(game);
             }
             solving(game) {
             }
@@ -498,13 +494,15 @@
             }
             won(game) {
             }
+            _element(game) {
+                const element = document.getElementById('game-time');
+                element.innerText = game.round.time;
+            }
         }
 
         class ScoreUiComponent extends GameUiComponent {
             constructor() {
                 super();
-            }
-            reset(game) {
             }
             started(game) {
                 this._element(game);
@@ -533,8 +531,6 @@
         class MessageUiComponent extends GameUiComponent {
             constructor() {
                 super();
-            }
-            reset(game) {
             }
             started(game) {
                 let message = 'Welcome! Guess the numeric code...';
@@ -588,27 +584,107 @@
             constructor() {
                 super();
             }
-            reset(game) {
-                _resetUiSectionGuess();
-            }
             started(game) {
-                _refreshUiSectionGuess();
+                this._container(game);
             }
             next(game) {
-                _refreshUiSectionGuess();
+                this._container(game);
             }
             solving(game) {
-                _refreshUiSectionGuess();
+                this._container(game);
             }
             solved(game) {
-                _refreshUiSectionGuess();
+                this._container(game);
             }
             exhausted(game) {
             }
             expired(game) {
             }
             won(game) {
-                _refreshUiSectionGuess();
+                this._container(game);
+            }
+            _container(game) {
+                // Reset
+                let container = document.getElementById('guess-container');
+                this._resetElement(container);
+                // Guess
+                let outcome = game.round.outcomes ? game.round.outcomes[0] : null;
+                let guess = outcome ? outcome.guess : null;
+                // Blocks
+                let i = 0;
+                let rows = Math.ceil(game.round.length / 5);
+                for (let r = 1; r <= rows; r++) {
+                    let rowElement = document.createElement('div');
+                    rowElement.className = 'row';
+                    container.append(rowElement);
+                    let remaining = (5 * r) - game.round.length;
+                    let columns = (remaining > 0) ? (5 - remaining) : 5;
+                    for (let c = 0; c < columns; c++) {
+                        let blockElement = this._block(game, i, guess);
+                        rowElement.append(blockElement);
+                        i += 1;
+                    }
+                }
+            }
+            _block(game, block, guess) {
+                // Block
+                let blockElement = document.createElement('div');
+                blockElement.id = 'g-' + block;
+                blockElement.className = 'row_block';
+                blockElement.style.background = 'white';
+                blockElement.style.fontWeight = 'bold';
+                blockElement.style.color = 'black';
+                blockElement.style.padding = '15px';
+                blockElement.style.margin = '2px';
+                blockElement.style.borderRadius = '5px';
+                blockElement.style.borderColor = null;
+                if ((block !== 0) && (block === focus)) {
+                    blockElement.style.borderColor = "black";
+                }
+                let onclick = '_actionFocus(' + block + ')';
+                blockElement.setAttribute('onclick', onclick);
+                // Value
+                let valueElement = document.createElement('span');
+                valueElement.id = 'gv-' + block;
+                blockElement.append(valueElement);
+                // Hint
+                let hintElement = document.createElement('div');
+                hintElement.id = 'gh-' + block;
+                hintElement.style.visibility = 'hidden';
+                blockElement.append(hintElement);
+                // HAM
+                let ham = _ham(block);
+                if (ham === 'H') {
+                    blockElement.style.background = "green";
+                    blockElement.style.color = "white";
+                    valueElement.innerText = this._value(guess, game.round.hint.first, block);
+                    hintElement.style.visibility = 'hidden';
+                } else if (ham === 'A') {
+                    valueElement.innerText = null;
+                    hintElement.style.background = "orange";
+                    hintElement.style.color = "white";
+                    hintElement.innerText = this._value(guess, game.round.hint.first, block);
+                    hintElement.style.visibility = 'visible';
+                } else if (guess) {
+                    valueElement.innerText = null;
+                    hintElement.style.background = "red";
+                    hintElement.style.color = "white";
+                    hintElement.innerText = this._value(guess, game.round.hint.first, block);
+                    hintElement.style.visibility = 'visible';
+                } else {
+                    valueElement.innerText = null;
+                    hintElement.style.visibility = 'hidden';
+                }
+                return blockElement;
+            }
+            _value(guess, first, index) {
+                let r = '';
+                if (index === 0) {
+                    r = first;
+                } else if (guess) {
+                    r = guess.split("")[index];
+                }
+                return r;
             }
         }
 
@@ -616,16 +692,14 @@
             constructor() {
                 super();
             }
-            reset(game) {
-            }
             started(game) {
-                _refreshUiSectionHint();
+                this._refresh();
             }
             next(game) {
-                _refreshUiSectionHint();
+                this._refresh();
             }
             solving(game) {
-                _refreshUiSectionHint();
+                this._refresh();
             }
             solved(game) {
             }
@@ -634,6 +708,21 @@
             expired(game) {
             }
             won(game) {
+            }
+            _refresh() {
+                // Same
+                let hintElement = document.getElementById('hint-same');
+                hintElement.innerText = game.round.hint.same;
+                // Above
+                hintElement = document.getElementById('hint-above');
+                hintElement.innerText = game.round.hint.above;
+                // Below
+                hintElement = document.getElementById('hint-below');
+                hintElement.innerText = game.round.hint.below;
+                // Total
+                hintElement = document.getElementById('hint-total');
+                hintElement.innerText = game.round.hint.total;
+                _progress(game.round);
             }
         }
 
@@ -641,12 +730,11 @@
             constructor() {
                 super();
             }
-            reset(game) {
-                _resetUiSectionAction();
-            }
             started(game) {
+                this._container(game);
             }
             next(game) {
+                this._container(game);
             }
             solving(game) {
             }
@@ -665,6 +753,52 @@
             won(game) {
                 let container = document.getElementById('action-container');
                 container.hidden = true;
+            }
+            _container(game) {
+                // Reset
+                let container = document.getElementById('action-container');
+                this._resetElement(container);
+                container.hidden = false;
+                // Choices
+                let i = 0;
+                for (let r = 0; r < 2; r++) {
+                    let divElement = document.createElement('div');
+                    for (let c = 0; c < 6; c++) {
+                        if ((r < 1) || (c < 4)) {
+                            let choiceElement = document.createElement('button');
+                            choiceElement.type = 'button';
+                            choiceElement.innerText = i;
+                            choiceElement.style.fontSize = '20px';
+                            choiceElement.style.border = 'none';
+                            choiceElement.style.background = '#898D8D';
+                            choiceElement.style.fontWeight = 'bold';
+                            choiceElement.style.color = 'white';
+                            choiceElement.style.margin = '2px';
+                            choiceElement.style.borderRadius = '5px';
+                            let onclick = '_actionChoice("' + i + '")';
+                            choiceElement.setAttribute('onclick', onclick);
+                            divElement.appendChild(choiceElement);
+                            i += 1;
+                        }
+                        if ((r === 1) && (c === 4)) {
+                            let choiceElement = document.createElement('button');
+                            choiceElement.id = 'choice-enter';
+                            choiceElement.type = 'button';
+                            choiceElement.innerText = 'Enter';
+                            choiceElement.style.fontSize = '20px';
+                            choiceElement.style.border = 'none';
+                            choiceElement.style.background = '#898D8D';
+                            choiceElement.style.fontWeight = 'bold';
+                            choiceElement.style.color = 'white';
+                            choiceElement.style.margin = '2px';
+                            choiceElement.style.borderRadius = '5px';
+                            let onclick = '_submitGuess()';
+                            choiceElement.setAttribute('onclick', onclick);
+                            divElement.appendChild(choiceElement);
+                        }
+                    }
+                    container.appendChild(divElement);
+                }
             }
         }
 
@@ -672,15 +806,14 @@
             constructor() {
                 super();
             }
-            reset(game) {
-                _resetUiSectionHistory();
-            }
             started(game) {
+                this._container(game);
             }
             next(game) {
+                this._container(game);
             }
             solving(game) {
-                _refreshUiSectionHistory();
+                this._container(game);
             }
             solved(game) {
             }
@@ -689,6 +822,50 @@
             expired(game) {
             }
             won(game) {
+            }
+            _container(game) {
+                // Reset
+                let container = document.getElementById('container-history');
+                this._resetElement(container);
+                // Previous
+                for (let o = game.round.outcomes.length-1; o >= 0; o--) {
+                    let outcome = game.round.outcomes[o];
+                    this._previous(outcome, container);
+                }
+            }
+            _previous(outcome, container) {
+                let divElement = document.createElement('div');
+                divElement.style.padding = '5px';
+                container.appendChild(divElement);
+                let gArray = outcome.guess.split("");
+                let hCode = outcome.ham;
+                let i = 0;
+                for (let j = 0; j < gArray.length; j++) {
+                    let spanElement = document.createElement('span');
+                    spanElement.innerText = gArray[j];
+                    spanElement.style.borderStyle = 'solid';
+                    spanElement.style.fontWeight = 'bold';
+                    spanElement.style.padding = '2px';
+                    spanElement.style.margin = '2px';
+                    spanElement.style.borderRadius = '5px';
+                    let ham = _hammy(hCode, j);
+                    if (ham === 'H') {
+                        spanElement.style.borderColor = 'black';
+                        spanElement.style.background = "green";
+                        spanElement.style.color = "white";
+                    } else if (ham === 'A') {
+                        spanElement.style.borderColor = 'black';
+                        spanElement.style.background = "orange";
+                        spanElement.style.color = "white";
+                    }
+                    if ((i > 0) && ((i % 5) === 0)) {
+                        let separatorElement = document.createElement('span');
+                        separatorElement.innerText = '-';
+                        divElement.appendChild(separatorElement);
+                    }
+                    divElement.appendChild(spanElement);
+                    i += 1;
+                }
             }
         }
 
@@ -734,205 +911,7 @@
         }
 
         function _initRound() {
-            _resetUi();
             gameUi.update();
-        }
-
-        function _resetElement(element) {
-            while (element.firstChild) {
-                element.removeChild(element.lastChild);
-            }
-        }
-
-        function _resetUi() {
-            gameUi.reset();
-            gameUi.update();
-        }
-
-        function _resetUiSectionGuess() {
-            let containerElement = document.getElementById('guess-container');
-            _resetElement(containerElement);
-            let i = 0;
-            let rows = Math.ceil(game.round.length / 5);
-            for (let r = 1; r <= rows; r++) {
-                let rowElement = document.createElement('div');
-                rowElement.className = 'row';
-                containerElement.append(rowElement);
-                let remaining = (5 * r) - game.round.length;
-                let columns = (remaining > 0) ? (5 - remaining) : 5;
-                for (let c = 0; c < columns; c++) {
-                    let blockElement = document.createElement('div');
-                    blockElement.id = 'g-' + i;
-                    blockElement.className = 'row_block';
-                    let onclick = '_actionFocus(' + i + ')';
-                    blockElement.setAttribute('onclick', onclick);
-                    let valueElement = document.createElement('span');
-                    valueElement.id = 'gv-' + i;
-                    blockElement.append(valueElement);
-                    let hintElement = document.createElement('div');
-                    hintElement.id = 'gh-' + i;
-                    hintElement.style.visibility = 'hidden';
-                    blockElement.append(hintElement);
-                    rowElement.append(blockElement);
-                    i += 1;
-                }
-            }
-        }
-
-        function _resetUiSectionAction() {
-            let actionElement = document.getElementById('action-container');
-            _resetElement(actionElement);
-            actionElement.hidden = false;
-            let i = 0;
-            for (let r = 0; r < 2; r++) {
-                let divElement = document.createElement('div');
-                for (let c = 0; c < 6; c++) {
-                    if ((r < 1) || (c < 4)) {
-                        let choiceElement = document.createElement('button');
-                        choiceElement.type = 'button';
-                        choiceElement.innerText = i;
-                        choiceElement.style.fontSize = '20px';
-                        choiceElement.style.border = 'none';
-                        choiceElement.style.background = '#898D8D';
-                        choiceElement.style.fontWeight = 'bold';
-                        choiceElement.style.color = 'white';
-                        // choiceElement.style.padding = '10px';
-                        choiceElement.style.margin = '2px';
-                        choiceElement.style.borderRadius = '5px';
-                        let onclick = '_actionChoice("' + i + '")';
-                        choiceElement.setAttribute('onclick', onclick);
-                        divElement.appendChild(choiceElement);
-                        i += 1;
-                    }
-                    if ((r === 1) && (c === 4)) {
-                        let choiceElement = document.createElement('button');
-                        choiceElement.id = 'choice-enter';
-                        choiceElement.type = 'button';
-                        choiceElement.innerText = 'Enter';
-                        choiceElement.style.fontSize = '20px';
-                        choiceElement.style.border = 'none';
-                        choiceElement.style.background = '#898D8D';
-                        choiceElement.style.fontWeight = 'bold';
-                        choiceElement.style.color = 'white';
-                        // choiceElement.style.padding = '10px';
-                        choiceElement.style.margin = '2px';
-                        choiceElement.style.borderRadius = '5px';
-                        let onclick = '_submitGuess()';
-                        choiceElement.setAttribute('onclick', onclick);
-                        divElement.appendChild(choiceElement);
-                    }
-                }
-                actionElement.appendChild(divElement);
-            }
-        }
-
-        function _resetUiSectionHistory() {
-            let containerElement = document.getElementById('container-history');
-            _resetElement(containerElement);
-        }
-
-        function _refreshUiSectionGuess() {
-            let outcome = game.round.outcomes ? game.round.outcomes[0] : null;
-            let guess = outcome ? outcome.guess : null;
-            for (let i = 0; i < game.round.length; i++) {
-                let codeElement = document.getElementById('g-'+i);
-                let valueElement = document.getElementById('gv-'+i);
-                let hintElement = document.getElementById('gh-'+i);
-                codeElement.style.background = 'white';
-                codeElement.style.fontWeight = 'bold';
-                codeElement.style.color = 'black';
-                codeElement.style.padding = '15px';
-                codeElement.style.margin = '2px';
-                codeElement.style.borderRadius = '5px';
-                //codeElement.style.borderWidth = null; // reset
-                codeElement.style.borderColor = null;
-                if ((i !== 0) && (i === focus)) {
-                    // codeElement.style.borderWidth = "5px";
-                    codeElement.style.borderColor = "black";
-                }
-                let ham = _ham(i);
-                if (ham === 'H') {
-                    codeElement.style.background = "green";
-                    codeElement.style.color = "white";
-                    valueElement.innerText = _parseGuessCode(guess, game.round.hint.first, i);
-                    hintElement.style.visibility = 'hidden';
-                } else if (ham === 'A') {
-                    valueElement.innerText = null;
-                    hintElement.style.background = "orange";
-                    hintElement.style.color = "white";
-                    hintElement.innerText = _parseGuessCode(guess, game.round.hint.first, i);
-                    hintElement.style.visibility = 'visible';
-                } else if (guess) {
-                    valueElement.innerText = null;
-                    hintElement.style.background = "red";
-                    hintElement.style.color = "white";
-                    hintElement.innerText = _parseGuessCode(guess, game.round.hint.first, i);
-                    hintElement.style.visibility = 'visible';
-                } else {
-                    valueElement.innerText = null;
-                    hintElement.style.visibility = 'hidden';
-                }
-            }
-        }
-
-        function _refreshUiSectionHint() {
-            // Same
-            let hintElement = document.getElementById('hint-same');
-            hintElement.innerText = game.round.hint.same;
-            // Above
-            hintElement = document.getElementById('hint-above');
-            hintElement.innerText = game.round.hint.above;
-            // Below
-            hintElement = document.getElementById('hint-below');
-            hintElement.innerText = game.round.hint.below;
-            // Total
-            hintElement = document.getElementById('hint-total');
-            hintElement.innerText = game.round.hint.total;
-            _progress(game.round);
-        }
-
-        function _refreshUiSectionHistory() {
-            let containerHistory = document.getElementById('container-history');
-            let outcome = game.round.outcomes ? game.round.outcomes[0] : null;
-            if (outcome) {
-                // Add most recent outcome
-                let divElement = document.createElement('div');
-                divElement.style.padding = '5px';
-                containerHistory.prepend(divElement);
-                let gArray = outcome.guess.split("");
-                let hCode = outcome.ham;
-                let i = 0;
-                for (let j = 0; j < gArray.length; j++) {
-                    let spanElement = document.createElement('span');
-                    spanElement.innerText = gArray[j];
-                    spanElement.style.borderStyle = 'solid';
-                    spanElement.style.fontWeight = 'bold';
-                    spanElement.style.padding = '2px';
-                    spanElement.style.margin = '2px';
-                    spanElement.style.borderRadius = '5px';
-                    let ham = _hammy(hCode, j);
-                     if (ham === 'H') {
-                        spanElement.style.borderColor = 'black';
-                        spanElement.style.background = "green";
-                        spanElement.style.color = "white";
-                    } else if (ham === 'A') {
-                        spanElement.style.borderColor = 'black';
-                        spanElement.style.background = "orange";
-                        spanElement.style.color = "white";
-                    }
-                    if ((i > 0) && ((i % 5) === 0)) {
-                        let separatorElement = document.createElement('span');
-                        separatorElement.innerText = '-';
-                        divElement.appendChild(separatorElement);
-                    }
-                    divElement.appendChild(spanElement);
-                    i += 1;
-                }
-                // Crop oldest outcome
-                if (game.round.attempts > 5) {
-                    containerHistory.removeChild(containerHistory.lastChild);
-                }
-            }
         }
 
         function _nextFocus() {
@@ -1085,16 +1064,6 @@
                     }
                 }
             }
-        }
-
-        function _parseGuessCode(guess, first, index) {
-            let r = '';
-            if (index === 0) {
-                r = first;
-            } else if (guess) {
-                r = guess.split("")[index];
-            }
-            return r;
         }
 
         function _submitGuess() {
