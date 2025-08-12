@@ -199,6 +199,7 @@
                 this.level = 1;
                 this.round = new Round(this.level);
                 this.score = 0;
+                this.time = 0;
                 this.attempts = 0;
                 this.ticker = null;
                 this.remaining = this.round.time;
@@ -232,9 +233,13 @@
             guess() {
                 let outcome = this.round.guess();
                 this.score += outcome.points;
+                this.time += this.round.time - this.remaining;
                 this.attempts += 1;
                 if (outcome.solved) {
                     this._timerStop();
+                    let timeBonus = this.remaining;
+                    let attemptsBonus = (5 - this.round.attempts) * this.level;
+                    this.score += timeBonus + attemptsBonus;
                     if (this.level >= 10) {
                         this.state = _STATE_WON;
                     } else {
@@ -1349,8 +1354,9 @@
     <h4>Highest Achievement</h4>
     <p>It's the best you have done, at least on this device.</p>
     <div><span style="font-weight: bolder">&#127298; : </span> <span id="stats-score">0</span> <span style="float: right">(Score)</span></div>
+    <div><span style="font-weight: bolder">&#127299; : </span> <span id="stats-time">0</span> <span style="float: right">(Time)</span></div>
     <div><span style="font-weight: bolder">&#127280; : </span> <span id="stats-attempts">0</span> <span style="float: right">(Attempts)</span></div>
-    <div><span style="font-weight: bolder">&#127291; : </span> <span id="stats-level">0</span> <span style="float: right">(Level)</span></div>
+    <div><span style="font-weight: bolder">&#127297; : </span> <span id="stats-level">0</span> <span style="float: right">(Round)</span></div>
     <p id="stats-message" style="font-style: italic;"></p>
 </dialog>
 
@@ -1365,6 +1371,8 @@
         let previousStats = _parseStats();
         let element = document.getElementById('stats-score');
         element.innerText = previousStats.score;
+        element = document.getElementById('stats-time');
+        element.innerText = previousStats.time;
         element = document.getElementById('stats-attempts');
         element.innerText = previousStats.attempts;
         element = document.getElementById('stats-level');
@@ -1384,6 +1392,7 @@
         let currentStats = {};
         if (app.game.round.solved()) {
             currentStats.score = app.game.score;
+            currentStats.time = app.game.time;
             currentStats.attempts = app.game.attempts;
             currentStats.level = app.game.level;
 
@@ -1406,7 +1415,7 @@
     }
 
     function _parseStats() {
-        let r = { score: 0, attempts: 0, level: 0 };
+        let r = { score: 0, time: 0, attempts: 0, level: 0 };
         let json = localStorage.getItem('cronkle-stats');
         if (json) { r = JSON.parse(json); }
         return r;
