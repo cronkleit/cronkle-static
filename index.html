@@ -196,17 +196,26 @@
                 this.state = _STATE_NEXT;
                 this.level += 1;
                 this.round = new Round(this.level);
+                this.remaining = this.round.time;
                 return this.round;
             }
 
-            choice(block, value) {
+            refocus(choice) {
+                let r = false;
+                if (this.state === _STATE_SOLVING) {
+                    this.state = _STATE_SOLVING;
+                    r = this.round.refocus(choice);
+                }
+                return r;
+            }
+
+            choice(value) {
                 this._timerStart();
                 this.state = _STATE_SOLVING;
-                this.round.choice(block, value);
+                this.round.choice(value);
             }
 
             guess() {
-                this.state = _STATE_SOLVING;
                 let outcome = this.round.guess();
                 this.score += outcome.points;
                 this.attempts += 1;
@@ -255,6 +264,7 @@
                 this.length = this.level + 2;
                 this.answer = this._answer(this.length);
                 this.hint = new Hint(this.answer);
+                this.focus = 1;
                 this.choices = this._choices(this.answer[0], this.length);
                 this.match = this._match();
                 this.outcomes = [];
@@ -263,10 +273,23 @@
                 this.time = 15 + ((level - 1) * 15);
             }
 
-            choice(block, value) {
-                let choice = this.choices[block];
+            refocus(choice) {
+                let r = false;
+                if (choice !== this.focus) {
+                    let ham = this._ham(choice);
+                    if (ham !== 'H') {
+                        this.focus = choice;
+                        r = true;
+                    }
+                }
+                return r;
+            }
+
+            choice(value) {
+                let choice = this.choices[this.focus];
                 choice.chose(value);
                 this.match = this._match();
+                this.focus = this._refocus(this.focus);
             }
 
             guess() {
@@ -276,12 +299,47 @@
                 this.attempts += 1;
                 this.choices = this._choices(this.answer[0], this.length, r);
                 this.match = this._match();
+                this.focus = this._refocus(0);
                 return r;
             }
 
             solved() {
                 const outcome = game.round.outcomes ? game.round.outcomes[0] : null;
                 return outcome && outcome.solved;
+            }
+
+            _refocus(current) {
+                let r = current;
+                let next = r + 1;
+                if (next === this.length) { next = 0; }
+                // After current
+                let found = false;
+                for (let i = next; i < this.length; i++) {
+                    let ham = this._ham(i);
+                    if (ham !== 'H') {
+                        r = i;
+                        found = true;
+                        break;
+                    }
+                }
+                // From beginning (if haven't checked already)
+                if (!found && (next !== 0)) {
+                    for (let i = 0; i < next; i++) {
+                        let ham = this._ham(i);
+                        if (ham !== 'H') {
+                            r = i;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                return r;
+            }
+
+            _ham(position) {
+                let outcome = this.outcomes ? game.round.outcomes[0] : null;
+                let ham = outcome ? outcome.ham : null;
+                return _hammy(ham, position);
             }
 
             _answer(length) {
@@ -663,10 +721,12 @@
                 this._container(message);
             }
             solving(game) {
-                let remaining = 5 - game.round.attempts;
-                let attempts = (remaining === 1) ? ' attempt ' : ' attempts ';
-                let message = 'Nope! '+remaining+attempts+'remaining...';
-                this._container(message);
+                if (game.round.attempts > 0) {
+                    let remaining = 5 - game.round.attempts;
+                    let attempts = (remaining === 1) ? ' attempt ' : ' attempts ';
+                    let message = 'Nope! ' + remaining + attempts + 'remaining...';
+                    this._container(message);
+                }
             }
             solved(game) {
                 let message = 'Solved!';
@@ -762,7 +822,7 @@
                 blockElement.style.borderColor = null;
                 let onclick = '_actionFocus(' + block + ')';
                 blockElement.setAttribute('onclick', onclick);
-                if ((block !== 0) && (block === focus)) {
+                if ((block !== 0) && (block === round.focus)) {
                     blockElement.style.borderColor = "black";
                 }
                 if (ham === 'H') {
@@ -817,7 +877,6 @@
             won(game) {
             }
             _refresh(round) {
-                let checked = 0;
                 // Same
                 let hintElement = document.getElementById('hint-same');
                 hintElement.innerText = round.hint.same;
@@ -825,7 +884,6 @@
                 if (round.hint.same === round.match.same) {
                     progressElement.innerHTML = '&#10003';
                     progressElement.style.color = 'green';
-                    checked += 1;
                 } else {
                     let remaining = round.hint.same - round.match.same;
                     progressElement.innerHTML = '&#10007'+' '+remaining;
@@ -838,7 +896,6 @@
                 if (round.hint.below === round.match.down) {
                     progressElement.innerHTML = '&#10003';
                     progressElement.style.color = 'green';
-                    checked += 1;
                 } else {
                     let remaining = round.hint.below - round.match.down;
                     progressElement.innerHTML = '&#10007'+' '+remaining;
@@ -851,7 +908,6 @@
                 if (round.hint.above === round.match.up) {
                     progressElement.innerHTML = '&#10003';
                     progressElement.style.color = 'green';
-                    checked += 1;
                 } else {
                     let remaining = round.hint.above - round.match.up;
                     progressElement.innerHTML = '&#10007'+' '+remaining;
@@ -864,7 +920,6 @@
                 if (round.hint.total === round.match.total) {
                     progressElement.innerHTML = '&#10003';
                     progressElement.style.color = 'green';
-                    checked += 1;
                 } else {
                     let remaining = round.hint.total - round.match.total;
                     progressElement.innerHTML = '&#10007'+' '+remaining;
@@ -1043,49 +1098,14 @@
         }
 
         function _actionExpired() {
-            focus = 0;
             gameUi.update();
         }
 
         var game = new Game(1, _actionTick, _actionExpired);
         var gameUi = new GameUi(game);
-        var focus = 0;
-        _nextFocus();
 
         function _initPage() {
             gameUi.update();
-        }
-
-        function _nextFocus() {
-            let next = focus + 1;
-            if (next === game.round.length) { next = 0; }
-            // After current
-            let found = false;
-            for (let i = next; i < game.round.length; i++) {
-                let ham = _ham(i);
-                if (ham !== 'H') {
-                    focus = i;
-                    found = true;
-                    break;
-                }
-            }
-            // From beginning (if haven't checked already)
-            if (!found && (next !== 0)) {
-                for (let i = 0; i < next; i++) {
-                    let ham = _ham(i);
-                    if (ham !== 'H') {
-                        focus = i;
-                        found = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        function _ham(position) {
-            let outcome = game.round.outcomes ? game.round.outcomes[0] : null;
-            let ham = outcome ? outcome.ham : null;
-            return _hammy(ham, position);
         }
 
         function _hammy(ham, position) {
@@ -1098,45 +1118,36 @@
             return r;
         }
 
-        function _actionChoice(choice) {
-            game.choice(focus, choice);
-            _nextFocus();
-            gameUi.update();
-        }
-
         function _actionFocus(choice) {
-            if (choice !== focus) {
-                let ham = _ham(choice);
-                if (ham !== 'H') {
-                    focus = choice;
-                    gameUi.update();
-                }
+            if (game.refocus(choice)) {
+                gameUi.update();
             }
         }
 
+        function _actionChoice(value) {
+            game.choice(value);
+            gameUi.update();
+        }
+
+
         function _submitGuess() {
             game.guess();
-            focus = 0;
             if (game.state === _STATE_WON) {
                 _saveStats();
             } else if (game.state === _STATE_SOLVED) {
                 _saveStats();
-            } else if (game.state === _STATE_SOLVING) {
-                _nextFocus();
             }
             gameUi.update();
         }
 
         function _roundNext() {
             game.next();
-            _nextFocus();
             gameUi.update();
         }
 
         function _gameNext() {
             game = new Game(game.id+1, _actionTick, _actionExpired);
             gameUi = new GameUi(game);
-            _nextFocus();
             gameUi.update();
         }
 
