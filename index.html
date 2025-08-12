@@ -785,25 +785,27 @@
                 super();
             }
             started(game) {
-                this._container(game);
+                this._container(game, false);
             }
             next(game) {
-                this._container(game);
+                this._container(game, false);
             }
             solving(game) {
-                this._container(game);
+                this._container(game, false);
             }
             solved(game) {
-                this._container(game);
+                this._container(game, true);
             }
             exhausted(game) {
+                this._container(game, true);
             }
             expired(game) {
+                this._container(game, true);
             }
             won(game) {
-                this._container(game);
+                this._container(game, true);
             }
-            _container(game) {
+            _container(game, over) {
                 // Reset
                 let container = document.getElementById('guess-container');
                 this._resetElement(container);
@@ -817,40 +819,45 @@
                     let remaining = (5 * r) - game.round.length;
                     let columns = (remaining > 0) ? (5 - remaining) : 5;
                     for (let c = 0; c < columns; c++) {
-                        let blockElement = this._block(game.round, i);
+                        let blockElement = this._block(game.round, i, over);
                         rowElement.append(blockElement);
                         i += 1;
                     }
                 }
             }
-            _block(round, block) {
+            _block(round, block, over) {
                 // Choice
                 let choice = round.choices[block];
                 let ham = choice.ham;
+                let value = over ? round.answer[block] : choice.value;
                 // Block
                 let blockElement = document.createElement('div');
                 blockElement.id = 'g-' + block;
                 blockElement.className = 'row_block';
-                blockElement.style.background = 'white';
                 blockElement.style.fontWeight = 'bold';
+                blockElement.style.background = 'white';
                 blockElement.style.color = 'black';
-                blockElement.style.padding = '15px';
-                blockElement.style.margin = '2px';
-                blockElement.style.borderRadius = '5px';
-                blockElement.style.borderColor = null;
-                let onclick = '_actionFocus(' + block + ')';
-                blockElement.setAttribute('onclick', onclick);
-                if ((block !== 0) && (block === round.focus)) {
-                    blockElement.style.borderColor = "black";
-                }
                 if (ham === 'H') {
                     blockElement.style.background = "green";
                     blockElement.style.color = "white";
                 }
+                blockElement.style.padding = '15px';
+                blockElement.style.margin = '2px';
+                blockElement.style.borderRadius = '5px';
+                blockElement.style.borderColor = null;
+                if (over) {
+                    blockElement.style.borderColor = "black";
+                } else {
+                    let onclick = '_actionFocus(' + block + ')';
+                    blockElement.setAttribute('onclick', onclick);
+                    if ((block !== 0) && (block === round.focus)) {
+                        blockElement.style.borderColor = "black";
+                    }
+                }
                 // Value
                 let valueElement = document.createElement('span');
                 valueElement.id = 'gv-' + block;
-                valueElement.innerText = (choice.value !== -1) ? choice.value : null;
+                valueElement.innerText = (value !== -1) ? value : null;
                 blockElement.append(valueElement);
                 // Hint
                 let hintElement = document.createElement('div');
