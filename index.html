@@ -318,7 +318,7 @@
             }
 
             solved() {
-                const outcome = game.round.outcomes ? game.round.outcomes[0] : null;
+                const outcome = this.outcomes ? this.outcomes[0] : null;
                 return outcome && outcome.solved;
             }
 
@@ -743,19 +743,19 @@
             }
             solved(game) {
                 let message = 'Solved!';
-                this._container(message, 'Next', '_roundNext()');
+                this._container(message, 'Next', '_actionNext()');
             }
             exhausted(game) {
                 let message = 'No more attempts... You lose!';
-                this._container(message, 'Start', '_gameNext()');
+                this._container(message, 'Start', '_actionRestart()');
             }
             expired(game) {
                 let message = 'Out of time... You lose!';
-                this._container(message, 'Start', '_gameNext()');
+                this._container(message, 'Start', '_actionRestart()');
             }
             won(game) {
                 let message = 'You won!';
-                this._container(message, 'Start', '_gameNext()');
+                this._container(message, 'Start', '_actionRestart()');
             }
             _container(message, label, action) {
                 // Reset
@@ -991,7 +991,7 @@
                             choiceElement.style.color = 'white';
                             choiceElement.style.margin = '2px';
                             choiceElement.style.borderRadius = '5px';
-                            let onclick = '_actionChoice("' + i + '")';
+                            let onclick = '_actionChoose("' + i + '")';
                             choiceElement.setAttribute('onclick', onclick);
                             divElement.appendChild(choiceElement);
                             i += 1;
@@ -1008,7 +1008,7 @@
                             choiceElement.style.color = 'white';
                             choiceElement.style.margin = '2px';
                             choiceElement.style.borderRadius = '5px';
-                            let onclick = '_submitGuess()';
+                            let onclick = '_actionGuess()';
                             choiceElement.setAttribute('onclick', onclick);
                             choiceElement.hidden = this._hide(game.round);
                             divElement.appendChild(choiceElement);
@@ -1106,52 +1106,83 @@
             }
         }
 
+        class App {
+
+            constructor() {
+                this.game = new Game(1, _actionTick, _actionExpired);
+                this.gameUi = new GameUi(this.game);
+            }
+
+            refresh() {
+                this.gameUi.update();
+            }
+
+            focus(choice) {
+                if (this.game.refocus(choice)) {
+                    this.gameUi.update();
+                }
+            }
+
+            choose(value) {
+                this.game.choice(value);
+                this.gameUi.update();
+            }
+
+            guess() {
+                this.game.guess();
+                if (this.game.state === _STATE_WON) {
+                    _saveStats();
+                } else if (this.game.state === _STATE_SOLVED) {
+                    _saveStats();
+                }
+                this.gameUi.update();
+            }
+
+            next() {
+                this.game.next();
+                this.gameUi.update();
+            }
+
+            restart() {
+                this.game = new Game(this.game.id+1, _actionTick, _actionExpired);
+                this.gameUi = new GameUi(this.game);
+                this.gameUi.update();
+            }
+
+        }
+
+        const app = new App();
+
+        function _initPage() {
+            app.refresh();
+        }
+
         function _actionTick() {
-            gameUi.update();
+            app.refresh();
         }
 
         function _actionExpired() {
-            gameUi.update();
-        }
-
-        var game = new Game(1, _actionTick, _actionExpired);
-        var gameUi = new GameUi(game);
-
-        function _initPage() {
-            gameUi.update();
+            app.refresh();
         }
 
         function _actionFocus(choice) {
-            if (game.refocus(choice)) {
-                gameUi.update();
-            }
+            app.focus(choice);
         }
 
-        function _actionChoice(value) {
-            game.choice(value);
-            gameUi.update();
+        function _actionChoose(value) {
+            app.choose(value);
         }
 
-
-        function _submitGuess() {
-            game.guess();
-            if (game.state === _STATE_WON) {
-                _saveStats();
-            } else if (game.state === _STATE_SOLVED) {
-                _saveStats();
-            }
-            gameUi.update();
+        function _actionGuess() {
+            app.guess();
         }
 
-        function _roundNext() {
-            game.next();
-            gameUi.update();
+        function _actionNext() {
+            app.next();
         }
 
-        function _gameNext() {
-            game = new Game(game.id+1, _actionTick, _actionExpired);
-            gameUi = new GameUi(game);
-            gameUi.update();
+        function _actionRestart() {
+            app.restart();
         }
 
         function _openModal(message) {
@@ -1351,10 +1382,10 @@
     function _saveStats() {
         // Current
         let currentStats = {};
-        if (game.round.solved()) {
-            currentStats.score = game.score;
-            currentStats.attempts = game.attempts;
-            currentStats.level = game.level;
+        if (app.game.round.solved()) {
+            currentStats.score = app.game.score;
+            currentStats.attempts = app.game.attempts;
+            currentStats.level = app.game.level;
 
         }
         // Update if improved
