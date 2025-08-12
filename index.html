@@ -894,14 +894,25 @@
                 this._refresh(game.round);
             }
             solved(game) {
+                let container = document.getElementById('container-hint');
+                container.hidden = true;
             }
             exhausted(game) {
+                let container = document.getElementById('container-hint');
+                container.hidden = true;
             }
             expired(game) {
+                let container = document.getElementById('container-hint');
+                container.hidden = true;
             }
             won(game) {
+                let container = document.getElementById('container-hint');
+                container.hidden = true;
             }
             _refresh(round) {
+                // Reset
+                let container = document.getElementById('container-hint');
+                container.hidden = false;
                 // Same
                 let hintElement = document.getElementById('hint-same');
                 hintElement.innerText = round.hint.same;
