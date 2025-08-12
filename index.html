@@ -179,13 +179,17 @@
 
         class Game {
 
-            constructor(id) {
+            constructor(id, onTick, onExpired) {
                 this.id = id;
                 this.state = _STATE_STARTED;
                 this.level = 1;
                 this.round = new Round(this.level);
                 this.score = 0;
                 this.attempts = 0;
+                this.ticker = null;
+                this.remaining = this.round.time;
+                this.ontick = onTick;
+                this.onexpired = onExpired;
             }
 
             next() {
@@ -196,6 +200,7 @@
             }
 
             choice(block, value) {
+                this._timerStart();
                 this.state = _STATE_SOLVING;
                 this.round.choice(block, value);
             }
@@ -205,23 +210,40 @@
                 let outcome = this.round.guess();
                 this.score += outcome.points;
                 this.attempts += 1;
-                return outcome;
+                if (outcome.solved) {
+                    this._timerStop();
+                    if (this.level >= 10) {
+                        this.state = _STATE_WON;
+                    } else {
+                        this.state = _STATE_SOLVED;
+                    }
+                } else if (this.round.attempts >= 5) {
+                    this._timerStop();
+                    this.state = _STATE_EXHAUSTED;
+                }
             }
 
-            solved() {
-                this.state = _STATE_SOLVED;
+            _timerStart() {
+                if (!this.ticker) {
+                    this.remaining = this.round.time;
+                    this.ticker = setInterval(this._timerTick.bind(this), 1000);
+                }
             }
 
-            exhausted() {
-                this.state = _STATE_EXHAUSTED;
+            _timerTick() {
+                this.remaining--;
+                if (this.remaining <= 0) {
+                    this._timerStop();
+                    this.state = _STATE_EXPIRED;
+                    this.onexpired();
+                } else {
+                    this.ontick();
+                }
             }
 
-            expired() {
-                this.state = _STATE_EXPIRED;
-            }
-
-            won() {
-                this.state = _STATE_WON;
+            _timerStop() {
+                clearInterval(this.ticker);
+                this.ticker = null;
             }
 
         }
@@ -574,24 +596,29 @@
                 super();
             }
             started(game) {
-                this._element(game);
+                this._element(game.remaining);
             }
             next(game) {
-                this._element(game);
+                this._element(game.remaining);
             }
             solving(game) {
+                this._element(game.remaining);
             }
             solved(game) {
+                this._element(game.remaining);
             }
             exhausted(game) {
+                this._element(game.remaining);
             }
             expired(game) {
+                this._element(game.remaining);
             }
             won(game) {
+                this._element(game.remaining);
             }
-            _element(game) {
+            _element(seconds) {
                 const element = document.getElementById('game-time');
-                element.innerText = game.round.time;
+                element.innerText = seconds;
             }
         }
 
@@ -1011,48 +1038,21 @@
             }
         }
 
-        var ticker;
-        var remaining;
-
-        function _timerStart() {
-            if (!ticker) {
-                remaining = game.round.time;
-                ticker = setInterval(_timerTick, 1000);
-            }
+        function _actionTick() {
+            gameUi.update();
         }
 
-        function _timerStop() {
-            clearInterval(ticker);
-            ticker = null;
+        function _actionExpired() {
+            focus = 0;
+            gameUi.update();
         }
 
-        function _timerTick() {
-            const element = document.getElementById('game-time');
-            remaining--;
-            if (remaining <= 0) {
-                _timerStop();
-                focus = 0;
-                game.expired();
-                gameUi.update();
-            } else {
-                element.innerText = remaining;
-            }
-        }
-
-        var game = new Game(1);
+        var game = new Game(1, _actionTick, _actionExpired);
         var gameUi = new GameUi(game);
         var focus = 0;
         _nextFocus();
 
         function _initPage() {
-            _initGame();
-        }
-
-        function _initGame() {
-            _initRound();
-        }
-
-        function _initRound() {
             gameUi.update();
         }
 
@@ -1099,9 +1099,8 @@
         }
 
         function _actionChoice(choice) {
-            _timerStart(); // Start after first choice in round
             game.choice(focus, choice);
-            _nextFocus(); // Refocus
+            _nextFocus();
             gameUi.update();
         }
 
@@ -1116,43 +1115,29 @@
         }
 
         function _submitGuess() {
-            const outcome = game.guess();
-            if (outcome.solved) {
-                _timerStop();
-                if (game.level >= 10) {
-                    _saveStats();
-                    focus = 0;
-                    game.won();
-                    gameUi.update();
-                } else {
-                    _saveStats();
-                    focus = 0;
-                    game.solved();
-                    gameUi.update();
-                }
-            } else if (game.round.attempts >= 5) {
-                _timerStop();
-                focus = 0;
-                game.exhausted();
-                gameUi.update();
-            } else {
-                focus = 0;
+            game.guess();
+            focus = 0;
+            if (game.state === _STATE_WON) {
+                _saveStats();
+            } else if (game.state === _STATE_SOLVED) {
+                _saveStats();
+            } else if (game.state === _STATE_SOLVING) {
                 _nextFocus();
-                gameUi.update();
             }
+            gameUi.update();
         }
 
         function _roundNext() {
             game.next();
             _nextFocus();
-            _initRound();
+            gameUi.update();
         }
 
         function _gameNext() {
-            game = new Game(game.id+1);
+            game = new Game(game.id+1, _actionTick, _actionExpired);
             gameUi = new GameUi(game);
             _nextFocus();
-            _initRound();
+            gameUi.update();
         }
 
         function _openModal(message) {
