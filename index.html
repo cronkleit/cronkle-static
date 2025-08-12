@@ -177,6 +177,20 @@
         const _PROGRESS_ALMOST_AFTER_MISS = 'Z';
         const _PROGRESS_MISS = 'M';
 
+        class Utils {
+
+            static ham(code, position) {
+                let r = 'M';
+                if (position === 0) {
+                    r = 'H';
+                } else if (code) {
+                    r = code[position];
+                }
+                return r;
+            }
+
+        }
+
         class Game {
 
             constructor(id, onTick, onExpired) {
@@ -337,9 +351,8 @@
             }
 
             _ham(position) {
-                let outcome = this.outcomes ? game.round.outcomes[0] : null;
-                let ham = outcome ? outcome.ham : null;
-                return _hammy(ham, position);
+                let choice = this.choices[position];
+                return choice.ham;
             }
 
             _answer(length) {
@@ -447,7 +460,7 @@
 
             guessed(outcome) {
                 this.hint = Number(outcome.guess[this.block]);
-                this.ham = _hammy(outcome.ham, this.block);
+                this.ham = Utils.ham(outcome.ham, this.block);
                 if (this.ham === 'H') {
                     this.value = this.hint;
                 }
@@ -1072,7 +1085,7 @@
                     spanElement.style.padding = '2px';
                     spanElement.style.margin = '2px';
                     spanElement.style.borderRadius = '5px';
-                    let ham = _hammy(hCode, j);
+                    let ham = Utils.ham(hCode, j);
                     if (ham === 'H') {
                         spanElement.style.borderColor = 'black';
                         spanElement.style.background = "green";
@@ -1106,16 +1119,6 @@
 
         function _initPage() {
             gameUi.update();
-        }
-
-        function _hammy(ham, position) {
-            let r = 'M';
-            if (position === 0) {
-                r = 'H';
-            } else if (ham) {
-                r = ham.split("")[position];
-            }
-            return r;
         }
 
         function _actionFocus(choice) {
