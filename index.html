@@ -158,6 +158,16 @@
             -webkit-backdrop-filter: blur(10px); /* For Safari */
         }
 
+        .stats-container {
+            display: inline-grid;
+            grid-template-columns: auto auto auto auto auto;
+            place-items: center;
+        }
+
+        .stats-container > div {
+            padding: 0 20px 0 0;
+        }
+
     </style>
     <script>
 
@@ -191,9 +201,21 @@
 
         }
 
+        class Statistics {
+
+            constructor(round, attempts, time, score, solved) {
+                this.round = round;
+                this.attempts = attempts;
+                this.time = time;
+                this.score = score;
+                this.solved = solved;
+            }
+
+        }
+
         class Game {
 
-            constructor(id, onTick, onExpired) {
+            constructor(id, callback) {
                 this.id = id;
                 this.state = _STATE_STARTED;
                 this.level = 1;
@@ -203,8 +225,7 @@
                 this.attempts = 0;
                 this.ticker = null;
                 this.remaining = this.round.time;
-                this.ontick = onTick;
-                this.onexpired = onExpired;
+                this.callback = callback;
             }
 
             next() {
@@ -233,7 +254,7 @@
             guess() {
                 let outcome = this.round.guess();
                 this.score += outcome.points;
-                this.time += this.round.time - this.remaining;
+                this.time = this.round.time - this.remaining;
                 this.attempts += 1;
                 if (outcome.solved) {
                     this._timerStop();
@@ -245,10 +266,26 @@
                     } else {
                         this.state = _STATE_SOLVED;
                     }
+                    this.callback();
                 } else if (this.round.attempts >= 5) {
                     this._timerStop();
                     this.state = _STATE_EXHAUSTED;
+                    this.callback();
                 }
+            }
+
+            stats() {
+                let r = null;
+                if (this._stopped()) {
+                    r = new Statistics(
+                        this.level,
+                        this.attempts,
+                        this.time,
+                        this.score,
+                        this._solved()
+                    )
+                }
+                return r;
             }
 
             _timerStart() {
@@ -263,15 +300,33 @@
                 if (this.remaining <= 0) {
                     this._timerStop();
                     this.state = _STATE_EXPIRED;
-                    this.onexpired();
-                } else {
-                    this.ontick();
                 }
+                this.callback();
             }
 
             _timerStop() {
                 clearInterval(this.ticker);
                 this.ticker = null;
+            }
+
+            _stopped() {
+                let r = false;
+                if ((this.state === _STATE_SOLVED) ||
+                    (this.state === _STATE_EXHAUSTED) ||
+                    (this.state === _STATE_EXPIRED) ||
+                    (this.state === _STATE_WON)) {
+                    r = true;
+                }
+                return r;
+            }
+
+            _solved() {
+                let r = false;
+                if ((this.state === _STATE_SOLVED) ||
+                    (this.state === _STATE_WON)) {
+                    r = true;
+                }
+                return r;
             }
 
         }
@@ -1129,14 +1184,58 @@
             }
         }
 
+        class UiDialog {
+            constructor() {
+            }
+        }
+
+        class StatisticsUiDialog extends UiDialog {
+            constructor() {
+                super();
+            }
+            show(stats) {
+                this._refresh(stats);
+                _dialogShow('dialog-stats');
+            }
+            _refresh(stats) {
+                if (!stats) { stats = {}; }
+                let round = stats.round ? stats.round : 0;
+                let never = stats.round <= 1 && !stats.solved;
+                let caveat = round >= 1 && !stats.solved;
+                let element = document.getElementById('stats-score');
+                element.innerText = (stats.score) ? stats.score : 0;
+                element = document.getElementById('stats-time');
+                element.innerText = (stats.time) ? stats.time : 0;
+                element = document.getElementById('stats-attempts');
+                element.innerText = (stats.attempts) ? stats.attempts : 0;
+                element = document.getElementById('stats-level');
+                element.innerText = caveat ? round+'*' : round;
+                element = document.getElementById('stats-message');
+                if (never) {
+                    element.innerText = 'Time to solve at least one level, hmm!?';
+                } else if (stats.round === 10) {
+                    if (!caveat) {
+                        element.innerText = 'Amazing! Can you get a better score?';
+                    } else {
+                        element.innerText = 'Wow! Can you solve the last level?';
+                    }
+                } else {
+                    let level = caveat ? round : round + 1;
+                    element.innerText = 'Nice! Can you beat level '+level+'?'
+                }
+            }
+        }
+
         class App {
 
             constructor() {
-                this.game = new Game(1, _actionTick, _actionExpired);
+                this.game = new Game(1, _actionCallback);
                 this.gameUi = new GameUi(this.game);
+                this.statsDialog = new StatisticsUiDialog();
             }
 
             refresh() {
+                this._save();
                 this.gameUi.update();
             }
 
@@ -1153,11 +1252,6 @@
 
             guess() {
                 this.game.guess();
-                if (this.game.state === _STATE_WON) {
-                    _saveStats();
-                } else if (this.game.state === _STATE_SOLVED) {
-                    _saveStats();
-                }
                 this.gameUi.update();
             }
 
@@ -1167,9 +1261,76 @@
             }
 
             restart() {
-                this.game = new Game(this.game.id+1, _actionTick, _actionExpired);
+                this.game = new Game(this.game.id+1, _actionCallback);
                 this.gameUi = new GameUi(this.game);
                 this.gameUi.update();
+            }
+
+            stats() {
+                this.statsDialog.show(this._restore());
+            }
+
+            _save() {
+                let current = this.game.stats();
+                if (current) {
+                    // Update if improved
+                    let restored = this._restore();
+                    let improved = this._improved(current, restored);
+                    if (improved) {
+                        localStorage.setItem('cronkle-stats', JSON.stringify(current));
+                    }
+                }
+            }
+
+            _restore() {
+                let r = null;
+                let json = localStorage.getItem('cronkle-stats');
+                if (json) { r = JSON.parse(json); }
+                return r;
+            }
+
+            _improved(current, restored) {
+                let r;
+                if (!restored) {
+                    r = true;
+                } else {
+                    // Try round
+                    let weight = this._weight(current.round, restored.round);
+                    if (weight === 1) { r = true; }
+                    else if (weight === 0) {
+                        // Try solved
+                        weight = this._weight((current.solved) ? 1 : 0, (restored.solved) ? 1 : 0);
+                        if (weight === 1) { r = true; }
+                        else if (weight === 0) {
+                            // Try attempts
+                            weight = this._weight(restored.attempts, current.attempts);
+                            if (weight === 1) { r = true; }
+                            else if (weight === 0) {
+                                // Try time
+                                weight = this._weight(restored.time, current.time);
+                                if (weight === 1) { r = true; }
+                                else if (weight === 0) {
+                                    // Try score
+                                    weight = this._weight(current.score, restored.score);
+                                    r = (weight === 1);
+                                }
+                            }
+                        }
+                    }
+                }
+                return r;
+            }
+
+            _weight(current, restored) {
+                let r = 0;
+                let cWeight = (current != null) ? current : 0;
+                let rWeight = (restored != null) ? restored : 0;
+                if (cWeight > rWeight) {
+                    r = 1;
+                } else if (cWeight < rWeight) {
+                    r = -1;
+                }
+                return r;
             }
 
         }
@@ -1180,11 +1341,7 @@
             app.refresh();
         }
 
-        function _actionTick() {
-            app.refresh();
-        }
-
-        function _actionExpired() {
+        function _actionCallback() {
             app.refresh();
         }
 
@@ -1206,6 +1363,10 @@
 
         function _actionRestart() {
             app.restart();
+        }
+
+        function _dialogStats() {
+            app.stats();
         }
 
         function _openModal(message) {
@@ -1371,74 +1532,37 @@
     <p>These are <i>never shared</i> and <i>only</i> stored locally on your device.</p>
     <h4>Highest Achievement</h4>
     <p>It's the best you have done, at least on this device.</p>
-    <div><span style="font-weight: bolder">&#127298; : </span> <span id="stats-score">0</span> <span style="float: right">(Score)</span></div>
-    <div><span style="font-weight: bolder">&#127299; : </span> <span id="stats-time">0</span> <span style="float: right">(Time)</span></div>
-    <div><span style="font-weight: bolder">&#127280; : </span> <span id="stats-attempts">0</span> <span style="float: right">(Attempts)</span></div>
-    <div><span style="font-weight: bolder">&#127297; : </span> <span id="stats-level">0</span> <span style="float: right">(Round)</span></div>
+    <div style="display: flex; justify-content: center;">
+        <div class="stats-container">
+            <div>&nbsp;</div>
+            <div style="font-size: 2em;">&#10026;</div>
+            <div style="font-size: 2em;">&#9685;</div>
+            <div style="font-size: 2em;">&#9684;</div>
+            <div>&nbsp;</div>
+            <div style="font-size: 2em;">&#127298;</div>
+            <div><span id="stats-score">0</span></div>
+            <div><span id="stats-score-today">0</span></div>
+            <div><span id="stats-score-last">0</span></div>
+            <div>Score</div>
+            <div style="font-size: 2em;">&#127299;</div>
+            <div><span id="stats-time">0</span></div>
+            <div><span id="stats-time-today">0</span></div>
+            <div><span id="stats-time-last">0</span></div>
+            <div>Time</div>
+            <div style="font-size: 2em;">&#127280;</div>
+            <div><span id="stats-attempts">0</span></div>
+            <div><span id="stats-attempts-today">0</span></div>
+            <div><span id="stats-attempts-last">0</span></div>
+            <div>Attempts</div>
+            <div style="font-size: 2em;">&#127297;</div>
+            <div><span id="stats-level">0</span></div>
+            <div><span id="stats-level-today">0</span></div>
+            <div><span id="stats-level-last">0</span></div>
+            <div>Round</div>
+        </div>
+    </div>
     <p id="stats-message" style="font-style: italic;"></p>
 </dialog>
 
-<script>
-
-    function _dialogStats() {
-        _refreshStats();
-        _dialogShow('dialog-stats');
-    }
-
-    function _refreshStats() {
-        let previousStats = _parseStats();
-        let element = document.getElementById('stats-score');
-        element.innerText = previousStats.score;
-        element = document.getElementById('stats-time');
-        element.innerText = previousStats.time;
-        element = document.getElementById('stats-attempts');
-        element.innerText = previousStats.attempts;
-        element = document.getElementById('stats-level');
-        element.innerText = previousStats.level;
-        element = document.getElementById('stats-message');
-        if (previousStats.level === 0) {
-            element.innerText = 'Time to solve at least one level, hmm!?';
-        } else if (previousStats.level === 10) {
-            element.innerText = 'Wow! Can you get a better score?';
-        } else {
-            element.innerText = 'Nice! Can you beat level '+previousStats.level+'?'
-        }
-    }
-
-    function _saveStats() {
-        // Current
-        let currentStats = {};
-        if (app.game.round.solved()) {
-            currentStats.score = app.game.score;
-            currentStats.time = app.game.time;
-            currentStats.attempts = app.game.attempts;
-            currentStats.level = app.game.level;
-
-        }
-        // Update if improved
-        if (currentStats.level) {
-            let improved = false;
-            let previousStats = _parseStats();
-            if (currentStats.level === previousStats.level) {
-                if (currentStats.score > previousStats.score) {
-                    improved = true;
-                }
-            } else if (currentStats.level > previousStats.level) {
-                improved = true;
-            }
-            if (improved) {
-                localStorage.setItem('cronkle-stats', JSON.stringify(currentStats));
-            }
-        }
-    }
-
-    function _parseStats() {
-        let r = { score: 0, time: 0, attempts: 0, level: 0 };
-        let json = localStorage.getItem('cronkle-stats');
-        if (json) { r = JSON.parse(json); }
-        return r;
-    }
-
-</script>
 </body>
 </html>
