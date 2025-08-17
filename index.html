@@ -4,33 +4,120 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Play</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@100..900&display=swap" rel="stylesheet">
     <style>
-        .item1 { grid-area: level; }
-        .item8 { grid-area: time; }
-        .item2 { grid-area: score; }
-        .item3 { grid-area: guess; }
+        :root {
+            --page-padding: 10px;
+            --base-border-radius: 5px;
+            --brand-color-primary-1: #ffffff;
+            --brand-color-primary-2: #4CA3E5;
+            --brand-color-primary-3: #11335A;
+            --brand-color-primary-4: #0B294D;
+            --brand-color-primary-5: #1C2127;
+            font-family: "Roboto Slab", serif;
+
+        }
+
+        .page-section {
+            max-width: 64rem;
+            width: calc(100% - var(--page-padding) * 2);
+        }
+
+        @media screen and (min-width: 768px) {
+            .normalize-header {
+                margin: 0;
+            }
+        }
+        .normalize-header {
+            line-height: .5;
+        }
+
+        .game-score {
+            grid-area: score;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            padding: 1rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            .game-score {
+                flex-direction: row;
+                width: 100%;
+                justify-content: space-between;
+                gap: unset;
+                padding: 0;
+            }
+        }
+
+        .game-score-section {
+            display: flex;
+            gap: .8rem;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: end;
+        }
+
+        .item3 { 
+            grid-area: guess; 
+            grid-column: 1 / -1;
+            justify-self: center;
+        }
         .item4 { grid-area: hint; }
         .item5 { grid-area: choose; }
         .item6 { grid-area: history; }
-        .item7 { grid-area: message; }
+        .item7 { 
+            grid-area: message; 
+            grid-column: 1 / -1;
+            justify-self: center;
+        }
+
+        .outer-container {
+            padding: var(--page-padding);
+            background-color: var(--brand-color-primary-3);
+            border-radius: var(--base-border-radius);
+        }
 
         .grid-container {
+            background-color: var(--brand-color-primary-1);
             display: grid;
+            box-sizing: border-box;
+            border-radius: var(--base-border-radius);
+            background-clip: padding-box;
+            box-shadow: 
+            rgba(255, 255, 255, 0.08) 0px 0px 12px,
+            rgba(0, 0, 0, 0.15) 0px 24px 28px,
+            rgba(0, 0, 0, 0.08) 0px -8px 18px,
+            rgba(0, 0, 0, 0.12) 0px 8px 9px;
             grid-template-areas:
-                'level level time time score score'
-                'message message message message message message'
-                'guess guess guess guess guess guess'
-                'hint hint hint hint hint hint'
-                'choose choose choose choose choose choose'
-                'history history history history history history';
+                'score message message'
+                'score guess guess'
+                'hint hint hint'
+                'choose choose choose'
+                'history history history';
+
+            grid-template-columns: auto 1fr auto;
             /*gap: 10px;*/
-            background-color: #2196F3;
+            
             padding: 10px;
+        }
+
+        @media screen and (max-width: 768px) {
+            .grid-container {
+                grid-template-areas:
+                    'score score score'
+                    'message message message'
+                    'guess guess guess'
+                    'hint hint hint'
+                    'choose choose choose'
+                    'history history history';    
+            }
         }
 
         .grid-container > div {
             /*background-color: rgba(255, 255, 255, 0.8);*/
-            background-color: lightblue;
             text-align: center;
             padding: 10px 0;
             /*font-size: 30px;*/
@@ -48,7 +135,8 @@
             color: white;
             padding: 10px;
             margin: 2px;
-            border-radius: 5px;
+            border-radius: var(--base-border-radius);
+            box-shadow: rgba(99, 99, 99, 0.2) 0 2px 8px 0, inset 0px -6px 0px rgba(0, 0, 0, 0.1), inset 0px -2px 0px rgba(0, 0, 0, 0.15);
         }
 
         /* The Modal (background) */
@@ -99,7 +187,7 @@
         .row_block {
             position: relative;
             font-size: 20px;
-            border: 3px solid lightblue;
+            border: 3px solid var(--brand-color-primary-1);
             width: 20px;
             height: 20px;
             border-radius: 12px;
@@ -115,7 +203,7 @@
             position:absolute;
             top:-5px;
             right:-5px;
-            background-color:blue;
+            background-color: var(--brand-color-primary-3);
             color:#fff;
             padding:5px;
             border-radius: 12px;
@@ -127,7 +215,7 @@
 
         .row_block_help {
             font-size: 20px;
-            border: 3px solid lightblue;
+            border: 3px solid var(--brand-color-primary-1);
             width: 20px;
             height: 20px;
             border-radius: 12px;
@@ -147,7 +235,7 @@
         .hint_circle {
             border-radius: 50%;
             padding: 0px 5px 2px 5px; /* top right bottom left */
-            background-color: blue;
+            background-color: var(--brand-color-primary-3);
             color: white;
             font-weight: bold;
             font-size: 15px;
@@ -890,8 +978,8 @@
                 blockElement.id = 'g-' + block;
                 blockElement.className = 'row_block';
                 blockElement.style.fontWeight = 'bold';
-                blockElement.style.background = 'white';
-                blockElement.style.color = 'black';
+                blockElement.style.background = '#E9E9E9';
+                blockElement.style.color = 'var(--brand-color-primary-5)';
                 if (ham === 'H') {
                     blockElement.style.background = "green";
                     blockElement.style.color = "white";
@@ -901,12 +989,12 @@
                 blockElement.style.borderRadius = '5px';
                 blockElement.style.borderColor = null;
                 if (over) {
-                    blockElement.style.borderColor = "black";
+                    blockElement.style.borderColor = "var(--brand-color-primary-3)";
                 } else {
                     let onclick = '_actionFocus(' + block + ')';
                     blockElement.setAttribute('onclick', onclick);
                     if ((block !== 0) && (block === round.focus)) {
-                        blockElement.style.borderColor = "black";
+                        blockElement.style.borderColor = "var(--brand-color-primary-3)";
                     }
                 }
                 // Value
@@ -1064,7 +1152,7 @@
                             choiceElement.innerText = i;
                             choiceElement.style.fontSize = '20px';
                             choiceElement.style.border = 'none';
-                            choiceElement.style.background = '#898D8D';
+                            choiceElement.style.background = 'var(--brand-color-primary-2)';
                             choiceElement.style.fontWeight = 'bold';
                             choiceElement.style.color = 'white';
                             choiceElement.style.margin = '2px';
@@ -1401,60 +1489,61 @@
         }
     </style>
 </head>
-<body onload="_initPage()">
+<body onload="_initPage()" style="display: flex; align-items: center; flex-direction: column; height: 100dvh; background: linear-gradient(135deg, var(--brand-color-primary-4) 0%, var(--brand-color-primary-3) 50%, var(--brand-color-primary-2) 100%); color: var(--brand-color-primary-5);">
 
-<header class="container" style="display: flex;">
-    <h1>Cronkle</h1>
-    <nav id="navbar">
-        <button onclick="_dialogStats();" type="button" style="font-size: 20px; background-color: dodgerblue;">#</button>
-        <button onclick="_dialogShow('dialog-help');" type="button" style="font-size: 20px; background-color: dodgerblue;">?</button>
-    </nav>
-</header>
+    <header class="container page-section">
+        <h1 style="color: var(--brand-color-primary-1);">Cronkle</h1>
+        <nav id="navbar">
+            <button onclick="_dialogStats();" type="button" style="font-size: 20px; background-color: var(--brand-color-primary-2);">#</button>
+            <button onclick="_dialogShow('dialog-help');" type="button" style="font-size: 20px; background-color: var(--brand-color-primary-2);">?</button>
+        </nav>
+    </header>
 
 
-<div class="grid-container">
+    <div class="grid-container page-section">
+        <aside class="game-score">
+            <div id="section-level" class="game-score-section">
+                <h3 class="normalize-header">Level:</h3> <h2 class="normalize-header"><span id="game-level">0</span></h2>
+            </div>
 
-    <div id="section-level" class="item1">
-        <h2>Level: <span id="game-level">0</span></h2>
-    </div>
+            <div id="section-time" class="game-score-section">
+                <h3 class="normalize-header">Time:</h3> <h2 class="normalize-header"><span id="game-time">0</span></h2>
+            </div>
 
-    <div id="section-time" class="item8">
-        <h2>Time: <span id="game-time">0</span></h2>
-    </div>
+            <div id="section-score" class="game-score-section">
+                <h3 class="normalize-header">Score:</h3> <h2 class="normalize-header"><span id="game-score">0</span></h2>
+            </div>
+        </aside>
 
-    <div id="section-score" class="item2">
-        <h2>Score: <span id="game-score">0</span></h2>
-    </div>
-
-    <div id="section-guess" class="item3">
-        <div id="guess-container">
+        <div id="section-guess" class="item3">
+            <div id="guess-container">
+            </div>
         </div>
-    </div>
 
-    <div id="section-hint" class="item4">
-        <div id="container-hint" style="padding: 5px;">
-            <span id="hint-same">&nbsp;</span> <span class="hint_circle">&equals;</span> <span id="same">&nbsp;</span> &#9474;
-            <span id="hint-below">&nbsp;</span> <span class="hint_circle">&lt;</span> <span id="down">&nbsp;</span> &#9474;
-            <span id="hint-above">&nbsp;</span> <span class="hint_circle">&gt;</span> <span id="up">&nbsp;</span> &#9474;
-            <span id="hint-total">&nbsp;</span> <span class="hint_circle">&plus;</span> <span id="total">&nbsp;</span>
+        <div id="section-hint" class="item4">
+            <div id="container-hint" style="padding: 5px;">
+                <span id="hint-same">&nbsp;</span> <span class="hint_circle">&equals;</span> <span id="same">&nbsp;</span> &#9474;
+                <span id="hint-below">&nbsp;</span> <span class="hint_circle">&lt;</span> <span id="down">&nbsp;</span> &#9474;
+                <span id="hint-above">&nbsp;</span> <span class="hint_circle">&gt;</span> <span id="up">&nbsp;</span> &#9474;
+                <span id="hint-total">&nbsp;</span> <span class="hint_circle">&plus;</span> <span id="total">&nbsp;</span>
+            </div>
         </div>
-    </div>
 
-    <div id="container-action" class="item5">
-        <div id="action-container">
+        <div id="container-action" class="item5">
+            <div id="action-container">
+            </div>
         </div>
-    </div>
 
-    <div id="section-history" class="item6">
-        <div id="container-history">
+        <div id="section-history" class="item6">
+            <div id="container-history">
+            </div>
         </div>
-    </div>
 
-    <div id="section-message" class="item7">
-        <div id="container-message"></div>
-    </div>
+        <div id="section-message" class="item7">
+            <div id="container-message" style="font-size: 18px;"></div>
+        </div>
 
-</div>
+    </div>
 
 <!-- The Modal -->
 <div id="myModal" class="modal">
@@ -1481,7 +1570,7 @@
     <h4>Examples</h4>
     <div class="row">
         <div class="row_block_help" style="border-radius: 0; border: 1px solid black; color: white; background-color: green;">3</div>
-        <div class="row_block_help" style="border-radius: 5px; border-color: black; color: white; background-color: orange;">2</div>
+        <div class="row_block_help" style="border-radius: var(--base-border-radius); border-color: black; color: white; background-color: orange;">2</div>
         <div class="row_block_help" style="border-radius: 0; border: 1px solid black;">7</div>
     </div>
     <ul>
@@ -1492,7 +1581,7 @@
     </ul>
     <div class="row">
         <div class="row_block_help" style="border-radius: 0; border: 1px solid black; color: white; background-color: green;">3</div>
-        <div class="row_block_help" style="border-radius: 5px; border-color: black;">8</div>
+        <div class="row_block_help" style="border-radius: var(--base-border-radius); border-color: black;">8</div>
         <div class="row_block_help" style="border-radius: 0; border: 1px solid black; color: white; background-color: green;">2</div>
     </div>
     <ul>
