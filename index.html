@@ -6,17 +6,18 @@
     <title>Play</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap" rel="stylesheet">
     <style>
         :root {
             --page-padding: 10px;
             --base-border-radius: 5px;
             --brand-color-primary-1: #ffffff;
-            --brand-color-primary-2: #4CA3E5;
-            --brand-color-primary-3: #11335A;
-            --brand-color-primary-4: #0B294D;
+            --brand-color-primary-2: #E9E9E9;
+            --brand-color-primary-3: #3148F6;
+            --brand-color-primary-4: #1C4B8F;
             --brand-color-primary-5: #1C2127;
-            font-family: "Roboto Slab", serif;
+            font-family: "Fira Code", monospace;
+            letter-spacing: -2px;
 
         }
 
@@ -73,13 +74,7 @@
             grid-column: 1 / -1;
             justify-self: center;
         }
-
-        .outer-container {
-            padding: var(--page-padding);
-            background-color: var(--brand-color-primary-3);
-            border-radius: var(--base-border-radius);
-        }
-
+        
         .grid-container {
             background-color: var(--brand-color-primary-1);
             display: grid;
@@ -989,12 +984,12 @@
                 blockElement.style.borderRadius = '5px';
                 blockElement.style.borderColor = null;
                 if (over) {
-                    blockElement.style.borderColor = "var(--brand-color-primary-3)";
+                    blockElement.style.borderColor = "var(--brand-color-primary-4)";
                 } else {
                     let onclick = '_actionFocus(' + block + ')';
                     blockElement.setAttribute('onclick', onclick);
                     if ((block !== 0) && (block === round.focus)) {
-                        blockElement.style.borderColor = "var(--brand-color-primary-3)";
+                        blockElement.style.borderColor = "var(--brand-color-primary-4)";
                     }
                 }
                 // Value
@@ -1152,7 +1147,7 @@
                             choiceElement.innerText = i;
                             choiceElement.style.fontSize = '20px';
                             choiceElement.style.border = 'none';
-                            choiceElement.style.background = 'var(--brand-color-primary-2)';
+                            choiceElement.style.background = 'var(--brand-color-primary-4)';
                             choiceElement.style.fontWeight = 'bold';
                             choiceElement.style.color = 'white';
                             choiceElement.style.margin = '2px';
@@ -1489,13 +1484,13 @@
         }
     </style>
 </head>
-<body onload="_initPage()" style="display: flex; align-items: center; flex-direction: column; height: 100dvh; background: linear-gradient(135deg, var(--brand-color-primary-4) 0%, var(--brand-color-primary-3) 50%, var(--brand-color-primary-2) 100%); color: var(--brand-color-primary-5);">
+<body onload="_initPage()" style="display: flex; align-items: center; flex-direction: column; height: 100dvh; background: var(--brand-color-primary-1); color: var(--brand-color-primary-5);">
 
     <header class="container page-section">
-        <h1 style="color: var(--brand-color-primary-1);">Cronkle</h1>
+        <h1 style="color: var(--brand-color-primary-5);">Cronkle</h1>
         <nav id="navbar">
-            <button onclick="_dialogStats();" type="button" style="font-size: 20px; background-color: var(--brand-color-primary-2);">#</button>
-            <button onclick="_dialogShow('dialog-help');" type="button" style="font-size: 20px; background-color: var(--brand-color-primary-2);">?</button>
+            <button onclick="_dialogStats();" type="button" style="font-size: 20px; background-color: var(--brand-color-primary-3);">#</button>
+            <button onclick="_dialogShow('dialog-help');" type="button" style="font-size: 20px; background-color: var(--brand-color-primary-3);">?</button>
         </nav>
     </header>
 
